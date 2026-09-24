@@ -58,7 +58,11 @@ func NewServer(work string) (*Server, error) {
 	s := &Server{work: work, sem: make(chan struct{}, 2)}
 	mux := http.NewServeMux()
 	static, _ := fs.Sub(staticFS, "static")
-	mux.Handle("GET /convert/", http.StripPrefix("/convert/", http.FileServer(http.FS(static))))
+	files := http.StripPrefix("/convert/", http.FileServer(http.FS(static)))
+	mux.Handle("GET /convert/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
+		files.ServeHTTP(w, r)
+	}))
 	mux.HandleFunc("GET /convert/api/formats", s.formats)
 	mux.HandleFunc("POST /convert/api/files", s.upload)
 	mux.HandleFunc("GET /convert/api/files/{id}", s.info)

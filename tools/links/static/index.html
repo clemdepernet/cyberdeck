@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Liens courts · Cyberdeck</title>
+  <link rel="stylesheet" href="/theme.css">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="tool-page">
+  <header class="tool-head">
+    <div>
+      <h1>Liens courts</h1>
+      <p>Un lien long devient <code>…/s/mon-raccourci</code>. Le compteur de clics et le QR sont là pour les rapports et les présentations. La limite est volontairement basse : dix liens, il faut en supprimer un pour en créer un autre.</p>
+    </div>
+    <div class="quota" id="quota"><span id="quota-n">0</span> / <span id="quota-max">10</span></div>
+  </header>
+
+  <div class="tool-body">
+    <form class="panel create" id="form">
+      <label>Adresse longue
+        <input type="url" id="url" class="mono" required placeholder="https://…" autocomplete="off">
+      </label>
+      <div class="row">
+        <label>Raccourci <span class="dim">(optionnel, sinon 6 caractères aléatoires)</span>
+          <input type="text" id="slug" class="mono" maxlength="32" pattern="[A-Za-z0-9_-]{2,32}" placeholder="rapport-acme" autocomplete="off">
+        </label>
+        <label>Titre <span class="dim">(pour toi)</span>
+          <input type="text" id="title" maxlength="80" placeholder="Rapport final ACME" autocomplete="off">
+        </label>
+        <button class="btn primary" type="submit" id="submit">Raccourcir</button>
+      </div>
+    </form>
+
+    <div class="list" id="list"></div>
+    <p class="empty dim" id="empty" hidden>Aucun lien pour l'instant.</p>
+    <p class="status" id="status" aria-live="polite"></p>
+  </div>
+</div>
+<script src="/deck.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

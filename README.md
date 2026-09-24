@@ -10,6 +10,7 @@ Une boîte à outils web auto-hébergée pour consultants en cybersécurité : *
 | **CyberChef** | Le build officiel du GCHQ, servi tel quel : encodages, chiffrement, compression, parsing, recettes chaînées | CyberChef (Apache-2.0), téléchargé au build |
 | **Copy-paste** | Un texte → un code de 5 caractères + QR + lien ; `curl /p/CODE` depuis un terminal ; expiration, destruction à la lecture | Go |
 | **Convertisseur** | Dépose un fichier, choisis la sortie : Word/Excel/PowerPoint/OpenDocument ↔ PDF, PDF → images ou Word, Markdown → HTML/Word/PDF, images ↔ PNG/JPEG/WebP/ICO/PDF, audio et vidéo via ffmpeg | Go pilotant LibreOffice, ImageMagick, Poppler, Pandoc, img2pdf, ffmpeg |
+| **Liens courts** | Dix liens courts maximum sur ton domaine (`/s/mon-raccourci`), compteur de clics, QR, raccourci personnalisable | Go |
 | **Alpha** | Rendre le noir, le blanc ou une couleur transparent (avec tolérance et bords adoucis), canal alpha, canaux RVB, 32 bit-planes, pixels cachés sous la transparence, extraction LSB | Python · FastAPI · Pillow · NumPy |
 | **JSON** | Validation avec position d'erreur, indentation, compactage, tri des clés, réparation de JSON approximatif, arbre repliable, recherche par chemin | JavaScript vanilla, 100 % navigateur |
 
@@ -29,6 +30,7 @@ Ou avec le `docker-compose.yml` fourni. L'image est multi-arch (amd64, arm64 : e
 | `APP_PASSWORD` | vide (ouvert) | Active une authentification basique sur tout le deck (utilisateur `toolbox`, ou `APP_USER`) |
 | `PUID` / `PGID` | 1000 | Propriétaire de `/data` |
 | `TZ` | UTC | Fuseau horaire des logs |
+| `MAX_LINKS` | 10 | Nombre maximal de liens courts |
 
 `/data` contient un sous-dossier par outil (`whiteboard/`, `paste/`…). Rien d'autre à sauvegarder.
 
@@ -38,6 +40,7 @@ Le deck est pensé pour être exposé derrière un reverse proxy ou un tunnel Cl
 
 - `Alt+1` … `Alt+9` : changer d'outil, `Alt+0` : replier le bandeau.
 - `Ctrl+S` dans le whiteboard : enregistrer maintenant (sinon autosave 1,5 s après le dernier trait).
+- `https://…/s/raccourci` : lien court, accessible sans mot de passe même si `APP_PASSWORD` est défini.
 - `https://…/p/CODE` : ouvre un paste. Avec `curl`, `wget` ou `Accept: text/plain`, renvoie le texte brut.
 - Coller une image (`Ctrl+V`) dans Alpha suffit, pas besoin de fichier.
 - Le convertisseur limite les envois à 512 Mo, garde le fichier 30 minutes et lance deux conversions en parallèle au maximum. Les conversions refusées (PDF → MP3) répondent 422 proprement.

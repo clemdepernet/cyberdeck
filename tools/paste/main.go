@@ -237,7 +237,11 @@ func NewServer(store *Store, publicURL string) *Server {
 	s := &Server{store: store, reads: NewLimiter(30, 15), writes: NewLimiter(20, 10), publicURL: strings.TrimRight(publicURL, "/")}
 	mux := http.NewServeMux()
 	static, _ := fs.Sub(staticFS, "static")
-	mux.Handle("GET /paste/", http.StripPrefix("/paste/", http.FileServer(http.FS(static))))
+	files := http.StripPrefix("/paste/", http.FileServer(http.FS(static)))
+	mux.Handle("GET /paste/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
+		files.ServeHTTP(w, r)
+	}))
 	mux.HandleFunc("POST /paste/api/pastes", s.create)
 	mux.HandleFunc("GET /paste/api/pastes/{code}", s.get)
 	mux.HandleFunc("GET /paste/api/pastes/{code}/raw", s.raw)
