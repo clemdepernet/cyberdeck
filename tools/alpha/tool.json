@@ -1,0 +1,9 @@
+{
+  "id": "alpha",
+  "name": "Alpha",
+  "tagline": "Isole le canal alpha, les canaux RVB et les bit-planes d'une image. Extrait les LSB.",
+  "tech": "Python · FastAPI · Pillow · NumPy",
+  "icon": "layers",
+  "path": "/alpha/",
+  "order": 30
+}

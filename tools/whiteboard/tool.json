@@ -1,0 +1,9 @@
+{
+  "id": "whiteboard",
+  "name": "Whiteboard",
+  "tagline": "Dessine, schématise, sauvegarde des planches nommées sur le serveur.",
+  "tech": "React · Excalidraw · Node",
+  "icon": "board",
+  "path": "/whiteboard/",
+  "order": 10
+}

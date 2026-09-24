@@ -1,0 +1,17 @@
+# Example deployment. Copy next to your other stacks, adjust the port and PUBLIC_URL.
+services:
+  toolbox:
+    image: ghcr.io/clemdepernet/cyberdeck:latest
+    build: .
+    container_name: toolbox
+    ports:
+      - "7850:8080"
+    volumes:
+      - ./data:/data
+    environment:
+      - TZ=Europe/Paris
+      - PUID=1000
+      - PGID=1000
+      - PUBLIC_URL=https://toolbox.example.com   # used in paste links and QR codes
+      # - APP_PASSWORD=change-me                  # optional: basic auth on the whole deck (user: toolbox)
+    restart: unless-stopped

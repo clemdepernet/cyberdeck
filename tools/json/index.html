@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JSON · Cyberdeck</title>
+  <link rel="stylesheet" href="/theme.css">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="tool-page">
+  <header class="tool-head">
+    <div>
+      <h1>JSON</h1>
+      <p>Tout se passe dans ton navigateur : rien n'est envoyé au serveur. Les erreurs sont pointées, le JSON approximatif (quotes simples, virgules en trop, commentaires) est réparé sur demande.</p>
+    </div>
+  </header>
+
+  <div class="tool-body">
+    <div class="toolbar main">
+      <button class="btn primary" id="format">Indenter</button>
+      <button class="btn" id="minify">Compacter</button>
+      <button class="btn" id="sort">Trier les clés</button>
+      <button class="btn" id="repair">Réparer</button>
+      <button class="btn" id="unescape">Dé-échapper une chaîne</button>
+      <span class="sep"></span>
+      <label>Indentation
+        <select id="indent"><option value="2">2 espaces</option><option value="4">4 espaces</option><option value="tab">tabulation</option></select>
+      </label>
+      <span class="sep"></span>
+      <button class="btn" id="copy">Copier</button>
+      <button class="btn" id="download">Télécharger</button>
+      <button class="btn" id="clear">Vider</button>
+    </div>
+
+    <div class="split">
+      <section class="panel editor">
+        <div class="panel-bar">
+          <span class="muted">Entrée</span>
+          <span class="dim" id="stats"></span>
+        </div>
+        <textarea id="input" class="mono" spellcheck="false" placeholder='{"paste": "ton JSON ici"}'></textarea>
+        <p class="verdict" id="verdict">Colle du JSON pour commencer.</p>
+      </section>
+
+      <section class="panel output">
+        <div class="panel-bar">
+          <div class="tabs">
+            <button class="btn small active" data-tab="tree">Arbre</button>
+            <button class="btn small" data-tab="text">Texte</button>
+          </div>
+          <div class="toolbar">
+            <input type="search" id="query" class="mono" placeholder="chemin : data.items[0].id" title="Chemin en notation pointée, crochets pour les index">
+            <button class="btn small" id="expand">Tout déplier</button>
+            <button class="btn small" id="collapse">Tout replier</button>
+          </div>
+        </div>
+        <div id="tree" class="tree mono"></div>
+        <pre id="text" class="mono" hidden></pre>
+      </section>
+    </div>
+    <p class="status" id="status" aria-live="polite"></p>
+  </div>
+</div>
+<script src="/deck.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

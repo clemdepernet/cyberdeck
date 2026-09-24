@@ -1,0 +1,75 @@
+# syntax=docker/dockerfile:1
+# Cyberdeck: one image, several tools, each built with its own stack.
+#
+# Adding a tool:
+#   1. create tools/<id>/ with tool.json, nginx.conf (+ supervisor.conf if it runs a process)
+#   2. if it needs compiling, add a `<id>-build` stage below and COPY --from it in the runtime stage
+#   3. if it needs a runtime (python venv, node…), install it in the runtime stage
+# scripts/new-tool.sh does step 1 for you.
+
+# ───────────────────────── whiteboard: React + Excalidraw, built with Vite ─────────────────────────
+FROM node:22-bookworm-slim AS whiteboard-build
+WORKDIR /build
+COPY tools/whiteboard/app/package.json tools/whiteboard/app/package-lock.json* ./
+RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+COPY tools/whiteboard/app/ ./
+RUN npm run build \
+ && cp -r node_modules/@excalidraw/excalidraw/dist/prod/fonts dist/fonts \
+ && ls dist
+
+# ───────────────────────── paste: Go, static binary ─────────────────────────
+FROM golang:1.23-bookworm AS paste-build
+WORKDIR /build
+COPY tools/paste/go.mod tools/paste/go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
+COPY tools/paste/ ./
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
+    go test ./... && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o paste .
+
+# ───────────────────────── runtime ─────────────────────────
+FROM node:22-bookworm-slim AS runtime
+ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DATA_DIR=/data PUID=1000 PGID=1000 PUBLIC_URL=""
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends nginx supervisor python3 python3-venv openssl ca-certificates curl; \
+    rm -rf /var/lib/apt/lists/* /etc/nginx/sites-enabled /etc/nginx/sites-available /var/www/html; \
+    userdel -r node 2>/dev/null || true; \
+    useradd --system --uid 1000 --create-home --shell /usr/sbin/nologin deck
+
+WORKDIR /app
+
+# alpha: Python venv (FastAPI + Pillow + numpy)
+COPY tools/alpha/requirements.txt /app/tools/alpha/requirements.txt
+RUN python3 -m venv /opt/alpha && /opt/alpha/bin/pip install -r /app/tools/alpha/requirements.txt
+
+# whole tree (static tools need nothing else)
+COPY shell/ /app/shell/
+COPY tools/ /app/tools/
+COPY scripts/ /app/scripts/
+COPY supervisord.conf /etc/supervisor/supervisord.conf
+COPY entrypoint.sh /app/entrypoint.sh
+
+# compiled artefacts
+COPY --from=whiteboard-build /build/dist /app/tools/whiteboard/dist
+COPY --from=paste-build /build/paste /app/tools/paste/paste
+
+RUN set -eux; \
+    rm -rf /app/tools/whiteboard/app; \
+    cp /app/shell/nginx.conf /etc/nginx/nginx.conf; \
+    : > /etc/nginx/auth.conf; \
+    python3 /app/scripts/build-manifest.py; \
+    chmod +x /app/entrypoint.sh /app/tools/paste/paste; \
+    nginx -t
+
+# ───────────────────────── test: run the Python + Node suites inside the real image ─────────────────────────
+FROM runtime AS test
+RUN /opt/alpha/bin/pip install pytest httpx \
+ && cd /app/tools/alpha && /opt/alpha/bin/python -m pytest -q \
+ && cd /app/tools/whiteboard && node --test server.test.mjs
+
+FROM runtime
+VOLUME ["/data"]
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 CMD curl -fsS http://127.0.0.1:8080/health || exit 1
+ENTRYPOINT ["/app/entrypoint.sh"]

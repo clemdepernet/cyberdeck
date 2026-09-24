@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Copy-paste · Cyberdeck</title>
+  <link rel="stylesheet" href="/theme.css">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="tool-page">
+  <header class="tool-head">
+    <div>
+      <h1>Copy-paste</h1>
+      <p>Colle un texte ici, récupère-le ailleurs avec un code de cinq caractères. Le texte reste sur ce serveur, jamais plus longtemps que prévu.</p>
+    </div>
+    <div class="mode" role="tablist">
+      <button class="btn active" id="mode-send" role="tab">Envoyer</button>
+      <button class="btn" id="mode-get" role="tab">Récupérer</button>
+    </div>
+  </header>
+
+  <div class="tool-body">
+    <section id="send" class="pane">
+      <div class="editor panel">
+        <textarea id="content" class="mono" spellcheck="false" placeholder="Colle ici : commande, hash, config, clé publique, log…"></textarea>
+        <div class="editor-foot">
+          <span class="dim" id="count">0 caractère</span>
+          <div class="toolbar">
+            <label>Durée de vie
+              <select id="ttl">
+                <option value="10m">10 minutes</option>
+                <option value="1h">1 heure</option>
+                <option value="1d" selected>1 jour</option>
+                <option value="7d">7 jours</option>
+              </select>
+            </label>
+            <label class="check"><input type="checkbox" id="burn"> Détruire après la première lecture</label>
+            <button class="btn primary" id="create">Obtenir un code</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="result panel" id="result" hidden>
+        <div class="code-block">
+          <p class="muted">Ton code</p>
+          <div class="code-big mono" id="code" title="Cliquer pour copier">-----</div>
+          <p class="dim" id="expiry"></p>
+          <div class="toolbar">
+            <button class="btn" id="copy-code">Copier le code</button>
+            <button class="btn" id="copy-url">Copier le lien</button>
+            <button class="btn" id="copy-curl">Copier la commande curl</button>
+          </div>
+          <p class="dim url mono" id="url"></p>
+        </div>
+        <img id="qr" class="qr" alt="QR code vers le paste" width="160" height="160">
+      </div>
+    </section>
+
+    <section id="get" class="pane" hidden>
+      <form class="fetch panel" id="fetch-form">
+        <label for="lookup">Code reçu</label>
+        <div class="fetch-row">
+          <input type="text" id="lookup" class="mono code-input" maxlength="12" autocomplete="off" autocapitalize="characters" placeholder="K7X2M">
+          <button class="btn primary" type="submit">Ouvrir</button>
+        </div>
+        <p class="dim">Ou depuis un terminal : <code>curl https://…/p/CODE</code></p>
+      </form>
+      <div class="found panel" id="found" hidden>
+        <div class="found-head">
+          <span class="muted" id="found-meta"></span>
+          <div class="toolbar">
+            <button class="btn" id="copy-content">Copier le contenu</button>
+            <button class="btn small danger" id="delete">Supprimer du serveur</button>
+          </div>
+        </div>
+        <pre class="mono" id="found-content"></pre>
+      </div>
+    </section>
+
+    <p class="status" id="status" aria-live="polite"></p>
+  </div>
+</div>
+<script src="/deck.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

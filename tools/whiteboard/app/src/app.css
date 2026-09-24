@@ -1,0 +1,42 @@
+html, body, #root { height: 100%; margin: 0; }
+.deck-board { height: 100vh; width: 100vw; }
+.deck-loading { height: 100vh; display: grid; place-items: center; color: var(--text-muted); }
+
+.deck-panel {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  font-family: var(--font-ui);
+  max-width: min(70vw, 720px);
+}
+.deck-select, .deck-name {
+  font: inherit; font-size: 13px; color: var(--text);
+  background: var(--bg-deep); border: 1px solid var(--line); border-radius: 6px;
+  padding: 5px 8px; height: 30px; outline: none;
+}
+.deck-select { max-width: 180px; }
+.deck-name { width: 160px; }
+.deck-select:focus-visible, .deck-name:focus-visible { border-color: var(--amber); }
+.deck-btn {
+  font: inherit; font-size: 12.5px; font-weight: 600; height: 30px; padding: 0 10px;
+  border-radius: 6px; border: 1px solid var(--amber); background: var(--amber); color: var(--amber-ink); cursor: pointer;
+}
+.deck-btn.danger { background: transparent; border-color: var(--line-strong); color: var(--red); font-weight: 500; }
+.deck-btn:hover { filter: brightness(1.08); }
+.deck-status { font-size: 12px; color: var(--text-muted); white-space: nowrap; padding: 0 4px; }
+.deck-status.saved { color: var(--green); }
+.deck-status.error { color: var(--red); }
+.deck-status.dirty { color: var(--amber); }
+
+/* Light theme of Excalidraw still gets our panel legible */
+.excalidraw:not(.theme--dark) .deck-panel { background: #fff; border-color: #ddd; color: #222; }
+.excalidraw:not(.theme--dark) .deck-select, .excalidraw:not(.theme--dark) .deck-name { background: #fff; color: #222; border-color: #ccc; }
+.excalidraw:not(.theme--dark) .deck-status { color: #555; }
+
+@media (max-width: 900px) {
+  .deck-status { display: none; }
+  .deck-name { width: 110px; }
+}

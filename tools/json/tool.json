@@ -1,0 +1,9 @@
+{
+  "id": "json",
+  "name": "JSON",
+  "tagline": "Colle du JSON cassé ou compact : il est validé, réparé, indenté, trié, exploré en arbre.",
+  "tech": "HTML · JavaScript vanilla · 100 % navigateur",
+  "icon": "braces",
+  "path": "/json/",
+  "order": 40
+}

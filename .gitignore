@@ -1,0 +1,9 @@
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.venv/
+data/
+.env
+tools/whiteboard/app/dist/
+shell/tools.json

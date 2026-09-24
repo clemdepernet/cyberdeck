@@ -1,0 +1,128 @@
+/* Cyberdeck shared theme. Every tool links this file so the deck feels like one
+   object even though each drawer is built with a different stack. */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --bg: #1b1d22;
+  --bg-deep: #15171b;
+  --panel: #23262c;
+  --panel-2: #2b2f36;
+  --line: #34383f;
+  --line-strong: #464b54;
+  --text: #ece7dc;
+  --text-muted: #9a9585;
+  --text-dim: #6d695f;
+  --amber: #f2b24e;
+  --amber-ink: #2a1e08;
+  --teal: #6fb6c9;
+  --red: #e5654f;
+  --green: #7fc383;
+  --shadow: 0 8px 24px rgba(0, 0, 0, .35);
+  --radius: 6px;
+  --radius-lg: 10px;
+  --font-ui: 'Sora', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+h1 { font-size: 20px; }
+h2 { font-size: 15px; }
+h3 { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+p { margin: 0; }
+a { color: var(--teal); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre, textarea.mono, input.mono, .mono { font-family: var(--font-mono); font-size: 13px; }
+
+/* Controls */
+.btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .12s, border-color .12s, transform .06s;
+}
+.btn:hover { background: #333841; border-color: #575d67; }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .45; cursor: default; transform: none; }
+.btn.primary { background: var(--amber); border-color: var(--amber); color: var(--amber-ink); font-weight: 600; }
+.btn.primary:hover { background: #f7c06a; border-color: #f7c06a; }
+.btn.danger { color: var(--red); }
+.btn.danger:hover { border-color: var(--red); }
+.btn.small { padding: 4px 9px; font-size: 12px; }
+.btn.active { background: var(--amber); border-color: var(--amber); color: var(--amber-ink); }
+
+input[type=text], input[type=search], input[type=number], select, textarea {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg-deep);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 7px 10px;
+  outline: none;
+}
+input:focus-visible, select:focus-visible, textarea:focus-visible, .btn:focus-visible {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 3px rgba(242, 178, 78, .22);
+}
+textarea { resize: vertical; line-height: 1.5; }
+label { color: var(--text-muted); font-size: 13px; }
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.muted { color: var(--text-muted); }
+.dim { color: var(--text-dim); }
+.ok { color: var(--green); }
+.err { color: var(--red); }
+
+/* Page frame used by simple tools */
+.tool-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.tool-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.tool-head p { color: var(--text-muted); }
+.tool-body { flex: 1; padding: 16px 20px 24px; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 8px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-track { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Alpha · Cyberdeck</title>
+  <link rel="stylesheet" href="/theme.css">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="tool-page">
+  <header class="tool-head">
+    <div>
+      <h1>Alpha</h1>
+      <p>Dépose une image : le canal alpha, chaque canal RVB, les 32 bit-planes et les LSB en un clic. Rien n'est écrit sur le disque, l'image s'efface après 30 minutes.</p>
+    </div>
+    <button class="btn" id="forget" hidden>Oublier l'image</button>
+  </header>
+
+  <div class="tool-body">
+    <div class="drop panel" id="drop">
+      <input type="file" id="file" accept="image/*" hidden>
+      <p class="drop-title">Dépose une image ici, colle-la (Ctrl+V), ou <button class="link" id="browse" type="button">choisis un fichier</button>.</p>
+      <p class="dim">PNG, GIF, BMP, WebP, TIFF, JPEG · 40 Mo max</p>
+    </div>
+
+    <div class="work" id="work" hidden>
+      <aside class="side">
+        <section class="panel info">
+          <h2 id="info-name">image.png</h2>
+          <dl class="kv" id="info-kv"></dl>
+          <p class="verdict" id="verdict"></p>
+        </section>
+
+        <section class="panel views">
+          <h3>Vue</h3>
+          <div class="grid2">
+            <button class="btn view active" data-mode="original">Original</button>
+            <button class="btn view" data-mode="channel" data-channel="a">Canal alpha</button>
+            <button class="btn view" data-mode="alpha_mask">Où est la transparence</button>
+            <button class="btn view" data-mode="opaque">Alpha forcé opaque</button>
+            <button class="btn view" data-mode="channel" data-channel="r">Rouge</button>
+            <button class="btn view" data-mode="channel" data-channel="g">Vert</button>
+            <button class="btn view" data-mode="channel" data-channel="b">Bleu</button>
+            <button class="btn view" data-mode="lsb_amplified">LSB amplifiés</button>
+          </div>
+          <label class="check"><input type="checkbox" id="invert"> Inverser</label>
+        </section>
+
+        <section class="panel planes">
+          <h3>Bit-planes</h3>
+          <div class="plane-grid" id="planes"></div>
+        </section>
+
+        <section class="panel lsb">
+          <h3>Extraction LSB</h3>
+          <div class="toolbar">
+            <label>Canaux <input type="text" id="lsb-ch" class="mono" value="rgb" maxlength="4" size="4"></label>
+            <label>Bits <select id="lsb-bits"><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
+            <label>Ordre <select id="lsb-order"><option value="row">lignes</option><option value="column">colonnes</option></select></label>
+            <button class="btn small primary" id="lsb-run">Extraire</button>
+            <button class="btn small" id="lsb-dl">Télécharger .bin</button>
+          </div>
+          <div id="lsb-out" hidden>
+            <p class="dim" id="lsb-meta"></p>
+            <div class="tabs">
+              <button class="btn small active" data-tab="strings">Strings</button>
+              <button class="btn small" data-tab="hex">Hex</button>
+              <button class="btn small" data-tab="ascii">ASCII</button>
+            </div>
+            <pre class="mono" id="lsb-pre"></pre>
+          </div>
+        </section>
+      </aside>
+
+      <section class="viewer panel">
+        <div class="viewer-bar">
+          <span id="view-label" class="muted">Original</span>
+          <div class="toolbar">
+            <button class="btn small" id="zoom-out">−</button>
+            <span class="mono" id="zoom">100 %</span>
+            <button class="btn small" id="zoom-in">+</button>
+            <button class="btn small" id="zoom-fit">Ajuster</button>
+            <a class="btn small" id="download" download>Enregistrer la vue</a>
+          </div>
+        </div>
+        <div class="canvas" id="canvas"><img id="img" alt="Vue de l'image"></div>
+      </section>
+    </div>
+    <p class="status" id="status" aria-live="polite"></p>
+  </div>
+</div>
+<script src="/deck.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
