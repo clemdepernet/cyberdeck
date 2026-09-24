@@ -12,7 +12,7 @@
   <header class="tool-head">
     <div>
       <h1>Alpha</h1>
-      <p>Dépose une image : le canal alpha, chaque canal RVB, les 32 bit-planes et les LSB en un clic. Rien n'est écrit sur le disque, l'image s'efface après 30 minutes.</p>
+      <p>Dépose une image : rends le noir ou le blanc transparent, isole le canal alpha, chaque canal RVB, les 32 bit-planes et les LSB. Rien n'est écrit sur le disque, l'image s'efface après 30 minutes.</p>
     </div>
     <button class="btn" id="forget" hidden>Oublier l'image</button>
   </header>
@@ -45,6 +45,21 @@
             <button class="btn view" data-mode="lsb_amplified">LSB amplifiés</button>
           </div>
           <label class="check"><input type="checkbox" id="invert"> Inverser</label>
+        </section>
+
+        <section class="panel knock">
+          <h3>Détourage</h3>
+          <div class="grid2">
+            <button class="btn view" data-mode="knockout" data-color="black">Noir → transparent</button>
+            <button class="btn view" data-mode="knockout" data-color="white">Blanc → transparent</button>
+          </div>
+          <div class="toolbar">
+            <label>Couleur <input type="color" id="knock-color" value="#ffffff"></label>
+            <button class="btn small view" data-mode="knockout" data-color="custom">Cette couleur</button>
+          </div>
+          <label class="range">Tolérance <input type="range" id="knock-tol" min="0" max="120" value="30"> <span class="mono" id="knock-tol-v">30</span></label>
+          <label class="check"><input type="checkbox" id="knock-soft" checked> Bords adoucis</label>
+          <a class="btn small primary" id="knock-dl" hidden download>Télécharger le PNG transparent</a>
         </section>
 
         <section class="panel planes">

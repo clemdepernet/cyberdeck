@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Convertisseur · Cyberdeck</title>
+  <link rel="stylesheet" href="/theme.css">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="tool-page">
+  <header class="tool-head">
+    <div>
+      <h1>Convertisseur</h1>
+      <p>Dépose un fichier, tous les formats de sortie sensés apparaissent. Office, PDF, images, Markdown, audio, vidéo. Le fichier est effacé du serveur après 30 minutes.</p>
+    </div>
+    <button class="btn" id="reset" hidden>Autre fichier</button>
+  </header>
+
+  <div class="tool-body">
+    <div class="drop panel" id="drop">
+      <input type="file" id="file" hidden>
+      <p class="drop-title">Dépose un fichier ici, colle-le (Ctrl+V), ou <button class="link" id="browse" type="button">choisis-le</button>.</p>
+      <p class="dim">Word, Excel, PowerPoint, OpenDocument, PDF, HTML, Markdown, PNG, JPEG, WebP, SVG, HEIC, MP3, WAV, MP4, MKV… · 512 Mo max</p>
+      <div class="matrix" id="matrix"></div>
+    </div>
+
+    <div class="work" id="work" hidden>
+      <div class="file panel">
+        <div class="file-icon" id="file-ext">PDF</div>
+        <div class="file-meta">
+          <h2 id="file-name">document.pdf</h2>
+          <p class="muted" id="file-info"></p>
+        </div>
+      </div>
+      <div class="groups" id="groups"></div>
+      <div class="progress panel" id="progress" hidden>
+        <div class="spinner"></div>
+        <div>
+          <p id="progress-text">Conversion en cours…</p>
+          <p class="dim">LibreOffice et ffmpeg prennent leur temps sur les gros fichiers.</p>
+        </div>
+      </div>
+      <div class="history" id="history"></div>
+    </div>
+    <p class="status" id="status" aria-live="polite"></p>
+  </div>
+</div>
+<script src="/deck.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

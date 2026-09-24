@@ -1,0 +1,30 @@
+.drop { padding: 40px 24px 28px; text-align: center; border-style: dashed; cursor: pointer; }
+.drop.over { border-color: var(--amber); background: rgba(242, 178, 78, .06); }
+.drop-title { font-size: 15px; margin-bottom: 4px; }
+.link { background: none; border: 0; color: var(--teal); font: inherit; cursor: pointer; padding: 0; text-decoration: underline; }
+.matrix { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; font-size: 12px; color: var(--text-dim); }
+.matrix span b { color: var(--text-muted); font-weight: 500; }
+
+.work { display: grid; gap: 14px; margin-top: 14px; max-width: 1000px; }
+.file { display: flex; align-items: center; gap: 16px; padding: 14px 18px; }
+.file-icon { width: 56px; height: 56px; border-radius: 10px; background: var(--amber); color: var(--amber-ink); display: grid; place-items: center; font-family: var(--font-mono); font-weight: 600; font-size: 13px; text-transform: uppercase; flex: none; }
+.file-meta h2 { word-break: break-all; }
+
+.groups { display: grid; gap: 12px; }
+.group { padding: 12px 16px 14px; }
+.group h3 { margin-bottom: 8px; }
+.targets { display: flex; flex-wrap: wrap; gap: 8px; }
+.target { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 8px 12px; min-width: 120px; }
+.target small { color: var(--text-dim); font-weight: 400; font-size: 11px; }
+.target.primary small { color: rgba(42, 30, 8, .7); }
+
+.progress { display: flex; align-items: center; gap: 16px; padding: 14px 18px; }
+.spinner { width: 22px; height: 22px; border-radius: 50%; border: 3px solid var(--line-strong); border-top-color: var(--amber); animation: spin .8s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.history { display: grid; gap: 6px; }
+.done { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); font-size: 13px; }
+.done.err { border-color: rgba(229, 101, 79, .5); }
+.done .msg { color: var(--red); white-space: pre-wrap; font-family: var(--font-mono); font-size: 11.5px; }
+.status { margin-top: 12px; min-height: 20px; color: var(--text-muted); }
+.status.err { color: var(--red); }

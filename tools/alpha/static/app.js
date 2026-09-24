@@ -3,7 +3,7 @@
   const api = '/alpha/api/images';
   const status = (msg, kind = '') => { $('status').textContent = msg; $('status').className = 'status ' + kind; };
   let image = null;       // server info for the current image
-  let view = { mode: 'original', channel: 'a', bit: 0 };
+  let view = { mode: 'original', channel: 'a', bit: 0, color: 'white' };
   let zoom = 1;
   let lsbData = null;
 
@@ -64,18 +64,32 @@
   // ---- views ----
   function setView(v, fit) {
     view = { ...view, ...v };
-    const q = new URLSearchParams({ mode: view.mode, channel: view.channel, bit: view.bit, invert: $('invert').checked });
-    const url = `${api}/${image.id}/view?${q}`;
+    let url;
+    if (view.mode === 'knockout') {
+      const color = view.color === 'custom' ? $('knock-color').value : view.color;
+      const q = new URLSearchParams({ color, tolerance: $('knock-tol').value, soft: $('knock-soft').checked });
+      url = `${api}/${image.id}/knockout?${q}`;
+      $('knock-dl').href = url + '&download=true';
+      $('knock-dl').hidden = false;
+    } else {
+      const q = new URLSearchParams({ mode: view.mode, channel: view.channel, bit: view.bit, invert: $('invert').checked });
+      url = `${api}/${image.id}/view?${q}`;
+    }
     $('img').src = url;
     $('download').href = url;
     $('download').download = `${(image.name || 'image').replace(/\.[^.]+$/, '')}_${view.mode}${view.mode === 'channel' || view.mode === 'bitplane' ? '_' + view.channel : ''}${view.mode === 'bitplane' ? view.bit : ''}.png`;
-    document.querySelectorAll('.view').forEach((b) => b.classList.toggle('active', b.dataset.mode === view.mode && (view.mode !== 'channel' || b.dataset.channel === view.channel)));
+    document.querySelectorAll('.view').forEach((b) => b.classList.toggle('active', b.dataset.mode === view.mode && (view.mode !== 'channel' || b.dataset.channel === view.channel) && (view.mode !== 'knockout' || b.dataset.color === view.color)));
     document.querySelectorAll('.plane').forEach((b) => b.classList.toggle('active', view.mode === 'bitplane' && b.dataset.channel === view.channel && +b.dataset.bit === view.bit));
-    const labels = { original: 'Original', channel: { r: 'Canal rouge', g: 'Canal vert', b: 'Canal bleu', a: 'Canal alpha' }[view.channel], alpha_mask: 'Transparence : rouge = alpha 0, ambre = partiel', opaque: 'Alpha forcé à 255', lsb_amplified: 'Deux bits de poids faible, amplifiés', bitplane: `Bit-plane ${view.channel.toUpperCase()}${view.bit}` };
+    const labels = { knockout: `Transparent : ${view.color === 'custom' ? $('knock-color').value : (view.color === 'black' ? 'noir' : 'blanc')} ± ${$('knock-tol').value}`, original: 'Original', channel: { r: 'Canal rouge', g: 'Canal vert', b: 'Canal bleu', a: 'Canal alpha' }[view.channel], alpha_mask: 'Transparence : rouge = alpha 0, ambre = partiel', opaque: 'Alpha forcé à 255', lsb_amplified: 'Deux bits de poids faible, amplifiés', bitplane: `Bit-plane ${view.channel.toUpperCase()}${view.bit}` };
     $('view-label').textContent = labels[view.mode] + ($('invert').checked ? ' · inversé' : '');
     if (fit) $('img').onload = () => { fitZoom(); $('img').onload = null; };
   }
-  document.querySelectorAll('.view').forEach((b) => b.onclick = () => setView({ mode: b.dataset.mode, channel: b.dataset.channel || view.channel }));
+  document.querySelectorAll('.view').forEach((b) => b.onclick = () => setView({ mode: b.dataset.mode, channel: b.dataset.channel || view.channel, color: b.dataset.color || view.color }));
+  let knockTimer;
+  const reknock = () => { $('knock-tol-v').textContent = $('knock-tol').value; if (view.mode === 'knockout') { clearTimeout(knockTimer); knockTimer = setTimeout(() => setView({}), 150); } };
+  $('knock-tol').oninput = reknock;
+  $('knock-soft').onchange = reknock;
+  $('knock-color').oninput = () => { if (view.mode === 'knockout' && view.color === 'custom') reknock(); };
   $('invert').onchange = () => setView({});
 
   const planes = $('planes');

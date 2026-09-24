@@ -4,7 +4,7 @@ import numpy as np
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from app import app, extract_bits
+from app import app, extract_bits, knockout
 
 client = TestClient(app)
 
@@ -89,3 +89,29 @@ def test_rejects_garbage_and_forgets():
     key = upload(arr, mode="RGB")["id"]
     assert client.delete(f"/alpha/api/images/{key}").status_code == 200
     assert client.get(f"/alpha/api/images/{key}/view").status_code == 404
+
+
+def test_knockout_makes_colour_transparent():
+    arr = np.zeros((2, 3, 4), dtype=np.uint8)
+    arr[..., 3] = 255
+    arr[0, 0, :3] = (255, 255, 255)   # pure white
+    arr[0, 1, :3] = (235, 235, 235)   # near white
+    arr[0, 2, :3] = (200, 200, 200)   # grey, outside tolerance
+    arr[1, :, :3] = (10, 200, 30)
+    out = knockout(arr, (255, 255, 255), 30, soft=False)
+    assert out[0, 0, 3] == 0 and out[0, 1, 3] == 0
+    assert out[0, 2, 3] == 255 and out[1, 0, 3] == 255
+    assert out[..., :3].tolist() == arr[..., :3].tolist()   # colours untouched
+    soft = knockout(arr, (255, 255, 255), 30, soft=True)
+    assert soft[0, 0, 3] == 0 and 0 < soft[0, 1, 3] < 255 and soft[0, 2, 3] == 255
+
+    key = upload(arr)["id"]
+    r = client.get(f"/alpha/api/images/{key}/knockout", params={"color": "black", "tolerance": 40, "download": "true"})
+    assert r.status_code == 200 and r.headers["content-type"] == "image/png"
+    assert "attachment" in r.headers["content-disposition"]
+    png = np.asarray(Image.open(io.BytesIO(r.content)).convert("RGBA"))
+    assert png.shape == (2, 3, 4) and png[1, 0, 3] == 255   # green stays; nothing was black here
+    assert client.get(f"/alpha/api/images/{key}/knockout", params={"color": "zz"}).status_code == 400
+    r = client.get(f"/alpha/api/images/{key}/knockout", params={"color": "#0ac81e", "tolerance": 0, "soft": "false"})
+    png = np.asarray(Image.open(io.BytesIO(r.content)).convert("RGBA"))
+    assert png[1, :, 3].tolist() == [0, 0, 0] and png[0, 2, 3] == 255

@@ -26,6 +26,13 @@ COPY tools/paste/ ./
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
     go test ./... && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o paste .
 
+# ───────────────────────── convert: Go, static binary (drives LibreOffice, ImageMagick, ffmpeg…) ─────────────────────────
+FROM golang:1.23-bookworm AS convert-build
+WORKDIR /build
+COPY tools/convert/ ./
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    go test ./... && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o convert .
+
 # ───────────────────────── cyberchef: official static build, downloaded as-is ─────────────────────────
 FROM debian:bookworm-slim AS cyberchef-build
 ARG CYBERCHEF_VERSION=v11.5.0
@@ -43,7 +50,10 @@ ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
     DATA_DIR=/data PUID=1000 PGID=1000 PUBLIC_URL=""
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y --no-install-recommends nginx supervisor python3 python3-venv openssl ca-certificates curl; \
+    apt-get install -y --no-install-recommends nginx supervisor python3 python3-venv openssl ca-certificates curl \
+      libreoffice-writer libreoffice-calc libreoffice-impress libreoffice-draw \
+      imagemagick img2pdf poppler-utils pandoc ffmpeg file \
+      fonts-liberation fonts-dejavu-core fonts-crosextra-carlito fonts-crosextra-caladea fonts-noto-core; \
     rm -rf /var/lib/apt/lists/* /etc/nginx/sites-enabled /etc/nginx/sites-available /var/www/html; \
     userdel -r node 2>/dev/null || true; \
     useradd --system --uid 1000 --create-home --shell /usr/sbin/nologin deck
@@ -65,20 +75,22 @@ COPY entrypoint.sh /app/entrypoint.sh
 COPY --from=whiteboard-build /build/dist /app/tools/whiteboard/dist
 COPY --from=paste-build /build/paste /app/tools/paste/paste
 COPY --from=cyberchef-build /cyberchef /app/tools/cyberchef/dist
+COPY --from=convert-build /build/convert /app/tools/convert/convert
 
 RUN set -eux; \
     rm -rf /app/tools/whiteboard/app; \
     cp /app/shell/nginx.conf /etc/nginx/nginx.conf; \
     : > /etc/nginx/auth.conf; \
     python3 /app/scripts/build-manifest.py; \
-    chmod +x /app/entrypoint.sh /app/tools/paste/paste; \
+    chmod +x /app/entrypoint.sh /app/tools/paste/paste /app/tools/convert/convert /app/tools/convert/smoke.sh; \
     nginx -t
 
 # ───────────────────────── test: run the Python + Node suites inside the real image ─────────────────────────
 FROM runtime AS test
 RUN /opt/alpha/bin/pip install pytest httpx \
  && cd /app/tools/alpha && /opt/alpha/bin/python -m pytest -q \
- && cd /app/tools/whiteboard && node --test server.test.mjs
+ && cd /app/tools/whiteboard && node --test server.test.mjs \
+ && su deck -s /bin/bash -c /app/tools/convert/smoke.sh
 
 FROM runtime
 VOLUME ["/data"]

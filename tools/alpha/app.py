@@ -236,6 +236,49 @@ def lsb(
     }
 
 
+def parse_hex(color: str) -> tuple[int, int, int]:
+    named = {"black": "000000", "white": "ffffff"}
+    color = named.get(color.lower(), color.lstrip("#"))
+    if not re.fullmatch(r"[0-9a-fA-F]{6}", color):
+        raise HTTPException(400, "color must be black, white or a #rrggbb value")
+    return int(color[0:2], 16), int(color[2:4], 16), int(color[4:6], 16)
+
+
+def knockout(rgba: np.ndarray, color: tuple[int, int, int], tolerance: int, soft: bool) -> np.ndarray:
+    """Turn every pixel close to `color` transparent.
+
+    Distance is the max channel difference (0..255). With `soft`, pixels between
+    tolerance/2 and tolerance fade out instead of a hard cut, which keeps
+    anti-aliased edges clean on logos and screenshots.
+    """
+    out = rgba.copy()
+    rgb = out[..., :3].astype(np.int16)
+    dist = np.abs(rgb - np.array(color, dtype=np.int16)).max(axis=-1)
+    if soft and tolerance > 0:
+        lo = tolerance / 2
+        factor = np.clip((dist - lo) / max(tolerance - lo, 1), 0, 1)
+    else:
+        factor = (dist > tolerance).astype(np.float32)
+    out[..., 3] = (out[..., 3].astype(np.float32) * factor).round().astype(np.uint8)
+    return out
+
+
+@app.get("/alpha/api/images/{key}/knockout")
+def knockout_view(
+    key: str,
+    color: str = Query("white"),
+    tolerance: int = Query(30, ge=0, le=255),
+    soft: bool = True,
+    download: bool = False,
+):
+    st = cache.get(key)
+    out = knockout(st.rgba, parse_hex(color), tolerance, soft)
+    resp = to_png(out, "RGBA")
+    if download:
+        resp.headers["Content-Disposition"] = f'attachment; filename="transparent_{color.lstrip("#")}.png"'
+    return resp
+
+
 @app.delete("/alpha/api/images/{key}")
 def forget(key: str):
     cache.drop(key)

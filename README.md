@@ -9,7 +9,8 @@ Une boîte à outils web auto-hébergée pour consultants en cybersécurité : *
 | **Whiteboard** | Dessin et schémas avec Excalidraw, planches nommées enregistrées sur le serveur, autosave, export PNG/SVG | React · Excalidraw · Node |
 | **CyberChef** | Le build officiel du GCHQ, servi tel quel : encodages, chiffrement, compression, parsing, recettes chaînées | CyberChef (Apache-2.0), téléchargé au build |
 | **Copy-paste** | Un texte → un code de 5 caractères + QR + lien ; `curl /p/CODE` depuis un terminal ; expiration, destruction à la lecture | Go |
-| **Alpha** | Canal alpha, canaux RVB, 32 bit-planes, détection de pixels cachés sous la transparence, extraction LSB | Python · FastAPI · Pillow · NumPy |
+| **Convertisseur** | Dépose un fichier, choisis la sortie : Word/Excel/PowerPoint/OpenDocument ↔ PDF, PDF → images ou Word, Markdown → HTML/Word/PDF, images ↔ PNG/JPEG/WebP/ICO/PDF, audio et vidéo via ffmpeg | Go pilotant LibreOffice, ImageMagick, Poppler, Pandoc, img2pdf, ffmpeg |
+| **Alpha** | Rendre le noir, le blanc ou une couleur transparent (avec tolérance et bords adoucis), canal alpha, canaux RVB, 32 bit-planes, pixels cachés sous la transparence, extraction LSB | Python · FastAPI · Pillow · NumPy |
 | **JSON** | Validation avec position d'erreur, indentation, compactage, tri des clés, réparation de JSON approximatif, arbre repliable, recherche par chemin | JavaScript vanilla, 100 % navigateur |
 
 ## Lancer
@@ -20,7 +21,7 @@ docker run -d --name toolbox -p 7850:8080 -v ./data:/data \
   ghcr.io/clemdepernet/cyberdeck:latest
 ```
 
-Ou avec le `docker-compose.yml` fourni. L'image est multi-arch (amd64, arm64 : elle tourne sur un Raspberry Pi 5).
+Ou avec le `docker-compose.yml` fourni. L'image est multi-arch (amd64, arm64 : elle tourne sur un Raspberry Pi 5). Elle pèse environ 1,5 Go, LibreOffice et ffmpeg oblige.
 
 | Variable | Défaut | Rôle |
 | --- | --- | --- |
@@ -39,6 +40,7 @@ Le deck est pensé pour être exposé derrière un reverse proxy ou un tunnel Cl
 - `Ctrl+S` dans le whiteboard : enregistrer maintenant (sinon autosave 1,5 s après le dernier trait).
 - `https://…/p/CODE` : ouvre un paste. Avec `curl`, `wget` ou `Accept: text/plain`, renvoie le texte brut.
 - Coller une image (`Ctrl+V`) dans Alpha suffit, pas besoin de fichier.
+- Le convertisseur limite les envois à 512 Mo, garde le fichier 30 minutes et lance deux conversions en parallèle au maximum. Les conversions refusées (PDF → MP3) répondent 422 proprement.
 - CyberChef garde ses options (thème sombre, favoris) dans le navigateur, via son menu Options.
 
 ## Ajouter un outil

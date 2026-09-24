@@ -43,3 +43,7 @@
 .status.err { color: var(--red); }
 
 @media (max-width: 900px) { .work { grid-template-columns: 1fr; } }
+
+.knock .range { display: flex; align-items: center; gap: 8px; }
+.knock input[type=range] { flex: 1; accent-color: var(--amber); }
+.knock input[type=color] { width: 36px; height: 28px; padding: 2px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg-deep); margin-left: 6px; vertical-align: middle; }
