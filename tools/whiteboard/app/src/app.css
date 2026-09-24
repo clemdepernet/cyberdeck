@@ -40,3 +40,6 @@ html, body, #root { height: 100%; margin: 0; }
   .deck-status { display: none; }
   .deck-name { width: 110px; }
 }
+
+.deck-crash { height: 100vh; display: grid; place-content: center; gap: 12px; text-align: center; color: var(--text); }
+.deck-crash p { color: var(--red); max-width: 60ch; }

@@ -26,7 +26,24 @@ function timeLabel(iso) {
   return new Date(iso).toLocaleTimeString(lang === 'fr-FR' ? 'fr-FR' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
 }
 
-export default function App() {
+class Boundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <div className="deck-crash">
+        <h2>{lang === 'fr-FR' ? 'Le whiteboard a planté.' : 'The whiteboard crashed.'}</h2>
+        <p className="mono">{String(this.state.error && this.state.error.message)}</p>
+        <button className="deck-btn" onClick={() => location.reload()}>{lang === 'fr-FR' ? 'Recharger' : 'Reload'}</button>
+      </div>
+    );
+  }
+}
+
+export default function App() { return <Boundary><Board /></Boundary>; }
+
+function Board() {
   const [api, setApi] = useState(null);
   const [boards, setBoards] = useState([]);
   const [current, setCurrent] = useState(null); // {id, name, updatedAt}
@@ -34,7 +51,8 @@ export default function App() {
   const [status, setStatus] = useState({ kind: 'idle', text: '' });
   const [initialData, setInitialData] = useState(null);
   const [theme, setTheme] = useState(() => { try { return localStorage.getItem('deck.wb.theme') || 'dark'; } catch { return 'dark'; } });
-  const versionRef = useRef(0);
+  const versionRef = useRef(0);   // scene version at last save
+  const seenRef = useRef(0);      // scene version at last onChange we handled
   const timerRef = useRef(null);
   const currentRef = useRef(null);
   currentRef.current = current;
@@ -56,7 +74,7 @@ export default function App() {
           const b = await getBoard(pick.id);
           setCurrent({ id: b.id, name: b.name, updatedAt: b.updatedAt });
           setName(b.name);
-          versionRef.current = getSceneVersion(b.elements || []);
+          versionRef.current = seenRef.current = getSceneVersion(b.elements || []);
           setInitialData({ elements: b.elements || [], appState: { ...(b.appState || {}) }, files: b.files || {}, scrollToContent: true });
           return;
         } catch { /* fall through to blank */ }
@@ -97,11 +115,16 @@ export default function App() {
     timerRef.current = setTimeout(() => save(), delay);
   }, [save]);
 
+  // Excalidraw calls onChange on every internal update, including the re-render our
+  // own setState triggers. Only react when the scene actually moved since the last
+  // event we saw (not since the last save), otherwise React loops until error #185.
   const onChange = useCallback((elements, appState) => {
     if (appState.theme !== theme) { setTheme(appState.theme); try { localStorage.setItem('deck.wb.theme', appState.theme); } catch {} }
     const v = getSceneVersion(elements);
-    if (v === versionRef.current) return;
-    setStatus({ kind: 'dirty', text: lang === 'fr-FR' ? 'Modifications non enregistrées' : 'Unsaved changes' });
+    if (v === seenRef.current) return;
+    seenRef.current = v;
+    if (v === versionRef.current) return; // back to the saved state (undo)
+    setStatus((s) => (s.kind === 'dirty' ? s : { kind: 'dirty', text: lang === 'fr-FR' ? 'Modifications non enregistrées' : 'Unsaved changes' }));
     scheduleSave();
   }, [scheduleSave, theme]);
 
@@ -123,7 +146,7 @@ export default function App() {
       if (b.files && Object.keys(b.files).length) api.addFiles(Object.values(b.files));
       api.history.clear();
       api.scrollToContent(undefined, { fitToContent: true });
-      versionRef.current = getSceneVersion(b.elements || []);
+      versionRef.current = seenRef.current = getSceneVersion(b.elements || []);
       setCurrent({ id: b.id, name: b.name, updatedAt: b.updatedAt });
       setName(b.name);
       setStatus({ kind: 'saved', text: (lang === 'fr-FR' ? 'Ouvert · enregistré à ' : 'Opened · saved at ') + timeLabel(b.updatedAt) });
@@ -139,7 +162,7 @@ export default function App() {
     if (status.kind === 'dirty') await save();
     api.updateScene({ elements: [], captureUpdate: CaptureUpdateAction.NEVER });
     api.history.clear();
-    versionRef.current = getSceneVersion([]);
+    versionRef.current = seenRef.current = getSceneVersion([]);
     setCurrent(null);
     setName('');
     history.replaceState(null, '', location.pathname);
@@ -155,7 +178,7 @@ export default function App() {
       await deleteBoard(current.id);
       api.updateScene({ elements: [], captureUpdate: CaptureUpdateAction.NEVER });
       api.history.clear();
-      versionRef.current = getSceneVersion([]);
+      versionRef.current = seenRef.current = getSceneVersion([]);
       setCurrent(null);
       setName('');
       history.replaceState(null, '', location.pathname);
