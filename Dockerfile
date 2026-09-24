@@ -26,6 +26,17 @@ COPY tools/paste/ ./
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
     go test ./... && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o paste .
 
+# ───────────────────────── cyberchef: official static build, downloaded as-is ─────────────────────────
+FROM debian:bookworm-slim AS cyberchef-build
+ARG CYBERCHEF_VERSION=v11.5.0
+ARG CYBERCHEF_ZIP=CyberChef_8cd426dd4f40f1423912d5fad91b578a86a65112.zip
+RUN set -eux; \
+    apt-get update; apt-get install -y --no-install-recommends ca-certificates curl unzip; \
+    curl -fsSL -o /tmp/cyberchef.zip "https://github.com/gchq/CyberChef/releases/download/${CYBERCHEF_VERSION}/${CYBERCHEF_ZIP}"; \
+    mkdir -p /cyberchef; unzip -q /tmp/cyberchef.zip -d /cyberchef; rm /tmp/cyberchef.zip; \
+    mv /cyberchef/CyberChef_${CYBERCHEF_VERSION}.html /cyberchef/index.html; \
+    ls /cyberchef | head
+
 # ───────────────────────── runtime ─────────────────────────
 FROM node:22-bookworm-slim AS runtime
 ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
@@ -53,6 +64,7 @@ COPY entrypoint.sh /app/entrypoint.sh
 # compiled artefacts
 COPY --from=whiteboard-build /build/dist /app/tools/whiteboard/dist
 COPY --from=paste-build /build/paste /app/tools/paste/paste
+COPY --from=cyberchef-build /cyberchef /app/tools/cyberchef/dist
 
 RUN set -eux; \
     rm -rf /app/tools/whiteboard/app; \

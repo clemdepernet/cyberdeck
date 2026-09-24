@@ -7,6 +7,7 @@ Une boîte à outils web auto-hébergée pour consultants en cybersécurité : *
 | Tiroir | Ce qu'il fait | Techno |
 | --- | --- | --- |
 | **Whiteboard** | Dessin et schémas avec Excalidraw, planches nommées enregistrées sur le serveur, autosave, export PNG/SVG | React · Excalidraw · Node |
+| **CyberChef** | Le build officiel du GCHQ, servi tel quel : encodages, chiffrement, compression, parsing, recettes chaînées | CyberChef (Apache-2.0), téléchargé au build |
 | **Copy-paste** | Un texte → un code de 5 caractères + QR + lien ; `curl /p/CODE` depuis un terminal ; expiration, destruction à la lecture | Go |
 | **Alpha** | Canal alpha, canaux RVB, 32 bit-planes, détection de pixels cachés sous la transparence, extraction LSB | Python · FastAPI · Pillow · NumPy |
 | **JSON** | Validation avec position d'erreur, indentation, compactage, tri des clés, réparation de JSON approximatif, arbre repliable, recherche par chemin | JavaScript vanilla, 100 % navigateur |
@@ -38,6 +39,7 @@ Le deck est pensé pour être exposé derrière un reverse proxy ou un tunnel Cl
 - `Ctrl+S` dans le whiteboard : enregistrer maintenant (sinon autosave 1,5 s après le dernier trait).
 - `https://…/p/CODE` : ouvre un paste. Avec `curl`, `wget` ou `Accept: text/plain`, renvoie le texte brut.
 - Coller une image (`Ctrl+V`) dans Alpha suffit, pas besoin de fichier.
+- CyberChef garde ses options (thème sombre, favoris) dans le navigateur, via son menu Options.
 
 ## Ajouter un outil
 
@@ -56,7 +58,7 @@ scripts/new-tool.sh hashes "Hashes" "md5, sha1, sha256 d'un texte ou d'un fichie
 docker compose up -d --build
 ```
 
-Le script crée un outil statique prêt à l'emploi ; l'onglet apparaît au prochain build (le manifeste `shell/tools.json` est généré par `scripts/build-manifest.py`). Pour un outil avec backend, ajoute un `supervisor.conf`, proxy-le depuis son `nginx.conf` et compile-le dans un stage du `Dockerfile` (les stages `whiteboard-build` et `paste-build` servent de modèles).
+Le script crée un outil statique prêt à l'emploi ; l'onglet apparaît au prochain build (le manifeste `shell/tools.json` est généré par `scripts/build-manifest.py`). Pour embarquer une app web existante sans la compiler, copie le modèle du stage `cyberchef-build` (téléchargement d'une release puis `COPY --from`). Pour un outil avec backend, ajoute un `supervisor.conf`, proxy-le depuis son `nginx.conf` et compile-le dans un stage du `Dockerfile` (les stages `whiteboard-build` et `paste-build` servent de modèles).
 
 Conventions qui gardent le deck cohérent :
 
