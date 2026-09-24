@@ -56,7 +56,7 @@ RUN set -eux; \
 # ───────────────────────── runtime ─────────────────────────
 FROM node:22-bookworm-slim AS runtime
 ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    DATA_DIR=/data PUID=1000 PGID=1000 PUBLIC_URL="" MAX_LINKS=10
+    DATA_DIR=/data PUID=1000 PGID=1000 PUBLIC_URL="" MAX_LINKS=10 HIBP_API_KEY=""
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends nginx supervisor python3 python3-venv openssl ca-certificates curl \
@@ -72,6 +72,10 @@ WORKDIR /app
 # alpha: Python venv (FastAPI + Pillow + numpy)
 COPY tools/alpha/requirements.txt /app/tools/alpha/requirements.txt
 RUN python3 -m venv /opt/alpha && /opt/alpha/bin/pip install -r /app/tools/alpha/requirements.txt
+
+# leaks: Python venv (FastAPI + httpx)
+COPY tools/leaks/requirements.txt /app/tools/leaks/requirements.txt
+RUN python3 -m venv /opt/leaks && /opt/leaks/bin/pip install -r /app/tools/leaks/requirements.txt
 
 # whole tree (static tools need nothing else)
 COPY shell/ /app/shell/
@@ -99,6 +103,8 @@ RUN set -eux; \
 FROM runtime AS test
 RUN /opt/alpha/bin/pip install pytest httpx \
  && cd /app/tools/alpha && /opt/alpha/bin/python -m pytest -q \
+ && /opt/leaks/bin/pip install pytest \
+ && cd /app/tools/leaks && /opt/leaks/bin/python -m pytest -q \
  && cd /app/tools/whiteboard && node --test server.test.mjs \
  && su deck -s /bin/bash -c /app/tools/convert/smoke.sh
 

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fuites · Cyberdeck</title>
+  <link rel="stylesheet" href="/theme.css">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="tool-page">
+  <header class="tool-head">
+    <div>
+      <h1>Fuites</h1>
+      <p>Une adresse e-mail, et la liste des bases où elle apparaît, via Have I Been Pwned. À droite, les dernières fuites françaises et mondiales. Rien n'est conservé ici : les résultats restent en mémoire dix minutes, pour ne pas épuiser la clé.</p>
+    </div>
+  </header>
+
+  <div class="tool-body cols">
+    <section class="left">
+      <form class="panel block" id="check-form">
+        <h2>Cette adresse a-t-elle fuité ?</h2>
+        <div class="row">
+          <input type="email" id="email" class="mono" required placeholder="prenom.nom@exemple.fr" autocomplete="off" spellcheck="false">
+          <button class="btn primary" id="check-btn" type="submit">Vérifier</button>
+        </div>
+        <p class="dim" id="key-note"></p>
+      </form>
+
+      <div id="result" hidden>
+        <div class="verdict panel" id="verdict"></div>
+        <div class="toolbar tabs" id="result-tabs">
+          <button class="btn small active" data-view="all">Toutes</button>
+          <button class="btn small" data-view="fr">Françaises</button>
+          <button class="btn small" data-view="classes">Données exposées</button>
+        </div>
+        <div class="breaches" id="breaches"></div>
+        <div class="panel block" id="pastes" hidden></div>
+      </div>
+
+      <section class="panel block">
+        <h2>Ce mot de passe est-il connu ?</h2>
+        <p class="muted">Le mot de passe ne quitte pas ton navigateur : seuls les 5 premiers caractères de son empreinte SHA-1 sont envoyés (k-anonymat), la comparaison se fait ici.</p>
+        <div class="row">
+          <input type="password" id="pwd" class="mono" placeholder="mot de passe à tester" autocomplete="new-password">
+          <button class="btn" id="pwd-btn" type="button">Tester</button>
+        </div>
+        <p id="pwd-result"></p>
+      </section>
+
+      <section class="panel block">
+        <h2>Aller plus loin</h2>
+        <p class="muted">Pour un domaine entier ou des identifiants volés par infostealer, <a href="https://stealed.io/fr/" target="_blank" rel="noopener">stealed.io</a> propose une recherche gratuite par nom de domaine. Le rapport de domaine HIBP demande une vérification de propriété : <a href="https://haveibeenpwned.com/DomainSearch" target="_blank" rel="noopener">haveibeenpwned.com/DomainSearch</a>.</p>
+      </section>
+      <p class="status" id="status" aria-live="polite"></p>
+    </section>
+
+    <aside class="feed panel">
+      <div class="feed-head">
+        <h2>Dernières fuites</h2>
+        <div class="tabs">
+          <button class="btn small active" data-feed="french">France</button>
+          <button class="btn small" data-feed="world">Monde</button>
+        </div>
+      </div>
+      <input type="search" id="feed-filter" placeholder="filtrer : banque, mutuelle, telecom…">
+      <p class="dim feed-meta" id="feed-meta">Chargement…</p>
+      <div class="feed-list" id="feed-list"></div>
+    </aside>
+  </div>
+</div>
+<script src="/deck.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
