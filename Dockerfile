@@ -50,6 +50,13 @@ COPY tools/links/ ./
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
     go test ./... && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o links .
 
+# ───────────────────────── bookmarks: Go, static binary ─────────────────────────
+FROM golang:1.23-bookworm AS bookmarks-build
+WORKDIR /build
+COPY tools/bookmarks/ ./
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    go vet ./... && go test ./... && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o bookmarks .
+
 # ───────────────────────── convert: Go, static binary (drives LibreOffice, ImageMagick, ffmpeg…) ─────────────────────────
 FROM golang:1.23-bookworm AS convert-build
 WORKDIR /build
@@ -111,6 +118,7 @@ COPY --from=paste-build /build/paste /app/tools/paste/paste
 COPY --from=cyberchef-build /cyberchef /app/tools/cyberchef/dist
 COPY --from=convert-build /build/convert /app/tools/convert/convert
 COPY --from=links-build /build/links /app/tools/links/links
+COPY --from=bookmarks-build /build/bookmarks /app/tools/bookmarks/bookmarks
 
 RUN set -eux; \
     rm -rf /app/tools/whiteboard/app; \
@@ -118,7 +126,7 @@ RUN set -eux; \
     cp /app/shell/nginx.conf /etc/nginx/nginx.conf; \
     : > /etc/nginx/auth.conf; \
     python3 /app/scripts/build-manifest.py; \
-    chmod +x /app/entrypoint.sh /app/gate/gate /app/tools/paste/paste /app/tools/convert/convert /app/tools/convert/smoke.sh /app/tools/links/links; \
+    chmod +x /app/entrypoint.sh /app/gate/gate /app/tools/paste/paste /app/tools/convert/convert /app/tools/convert/smoke.sh /app/tools/links/links /app/tools/bookmarks/bookmarks; \
     nginx -t
 
 # ───────────────────────── test: run the Python + Node suites inside the real image ─────────────────────────

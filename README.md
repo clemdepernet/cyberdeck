@@ -14,6 +14,7 @@ Une boîte à outils web auto-hébergée pour consultants en cybersécurité : *
 | **Fuites** | Une adresse e-mail → les bases où elle a fuité (Have I Been Pwned v3, clé requise), pastes, test de mot de passe par k-anonymat, et un fil des dernières fuites françaises (Bonjour la fuite, ZATAZ, Numerama, CERT-FR) et mondiales (HIBP) | Python · FastAPI · httpx |
 | **Verdict** | Un hash (MD5, SHA-1, SHA-256), une URL, un domaine, une IP ou un fichier déposé (32 Mo max) → le rapport VirusTotal : verdict global, classification de menace, détails (noms, taille, signataire, whois, DNS, redirections…), tableau moteur par moteur filtrable ; soumission d'URL ou de fichier inconnus avec suivi de l'analyse | Python · FastAPI · httpx · VirusTotal v3 |
 | **Liens courts** | Dix liens courts maximum sur ton domaine (`/s/mon-raccourci`), compteur de clics, QR, raccourci personnalisable | Go |
+| **Signets** | Un annuaire de sites utiles rangés par famille (DevOps, cybersécurité, news, cracking, forensic, OSINT… et n'importe quelle autre) : une carte par site avec nom, description et favicon ; ajout par URL avec lecture automatique du titre et de la description, ajout en vrac (`url | nom | description | famille`), glisser-déposer d'un lien, filtre, renommage de famille, export JSON | Go |
 | **Alpha** | Rendre le noir, le blanc ou une couleur transparent (avec tolérance et bords adoucis), canal alpha, canaux RVB, 32 bit-planes, pixels cachés sous la transparence, extraction LSB | Python · FastAPI · Pillow · NumPy |
 | **JSON** | Validation avec position d'erreur, indentation, compactage, tri des clés, réparation de JSON approximatif, arbre repliable, recherche par chemin | JavaScript vanilla, 100 % navigateur |
 
@@ -86,7 +87,7 @@ docker build --target test .        # tests Go, Python et Node dans l'image rée
 docker compose up --build           # le deck sur http://localhost:7850
 ```
 
-Tests unitaires par outil : `tools/paste` (`go test`), `tools/alpha` (`pytest`), `tools/whiteboard` (`node --test server.test.mjs`), `tools/pivot` (`node --test server.test.mjs` et `npm test` dans `app/` pour les parseurs de scans), `tools/verdict` (`pytest`).
+Tests unitaires par outil : `tools/paste`, `tools/links`, `tools/bookmarks` et `gate` (`go test`), `tools/alpha` (`pytest`), `tools/whiteboard` (`node --test server.test.mjs`), `tools/pivot` (`node --test server.test.mjs` et `npm test` dans `app/` pour les parseurs de scans), `tools/verdict` (`pytest`).
 
 ## Licence
 

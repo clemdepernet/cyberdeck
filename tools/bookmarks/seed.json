@@ -1,0 +1,8 @@
+[
+  {"url": "https://roadmap.sh/devops", "name": "DevOps Roadmap", "description": "Le parcours DevOps étape par étape, avec les ressources pour chaque brique.", "family": "DevOps"},
+  {"url": "https://attack.mitre.org/", "name": "MITRE ATT&CK", "description": "La matrice de référence des tactiques et techniques adverses.", "family": "Cybersécurité"},
+  {"url": "https://thehackernews.com/", "name": "The Hacker News", "description": "Actualité sécurité quotidienne : vulnérabilités, campagnes, correctifs.", "family": "News"},
+  {"url": "https://crackstation.net/", "name": "CrackStation", "description": "Recherche de hashs MD5, SHA-1, SHA-256, NTLM dans des tables précalculées.", "family": "Cracking"},
+  {"url": "https://www.dfir.training/", "name": "DFIR Training", "description": "Annuaire d'outils, de formations et de ressources forensic.", "family": "Forensic"},
+  {"url": "https://osintframework.com/", "name": "OSINT Framework", "description": "Arbre de ressources OSINT classées par type d'information cherchée.", "family": "OSINT"}
+]

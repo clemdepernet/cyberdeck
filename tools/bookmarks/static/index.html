@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Signets · Cyberdeck</title>
+  <link rel="stylesheet" href="/theme.css">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="tool-page">
+  <header class="tool-head">
+    <div>
+      <h1>Signets</h1>
+      <p>Les sites utiles, rangés par famille, disponibles partout. Colle une URL : le nom et la description se remplissent seuls, tu choisis la famille, c'est rangé.</p>
+    </div>
+    <div class="toolbar head-tools">
+      <input type="search" id="filter" placeholder="filtrer : nom, description, domaine, famille">
+      <button class="btn primary" id="add-btn" type="button">+ Ajouter</button>
+      <button class="btn" id="bulk-btn" type="button" title="Plusieurs sites d'un coup">En vrac</button>
+      <a class="btn" href="api/export" download="signets.json" title="Télécharger tous les signets en JSON">Exporter</a>
+    </div>
+  </header>
+
+  <div class="tool-body">
+    <p class="status" id="status" aria-live="polite"></p>
+    <div id="families"></div>
+  </div>
+</div>
+
+<div class="modal-back" id="modal" hidden>
+  <form class="panel modal" id="site-form">
+    <div class="modal-head"><h2 id="form-title">Ajouter un site</h2><button class="x" type="button" id="form-close" title="Fermer">×</button></div>
+    <label>URL
+      <div class="row">
+        <input type="text" id="f-url" class="mono" required placeholder="https://…" autocomplete="off" spellcheck="false">
+        <button class="btn small" type="button" id="peek-btn" title="Lire le titre et la description de la page">Lire la page</button>
+      </div>
+    </label>
+    <label>Nom <input type="text" id="f-name" maxlength="80" placeholder="Nom court affiché sur la carte"></label>
+    <label>Description <input type="text" id="f-desc" maxlength="240" placeholder="En une phrase, à quoi ça sert"></label>
+    <label>Famille
+      <input type="text" id="f-family" list="family-list" maxlength="40" placeholder="DevOps, Cybersécurité, News… ou une nouvelle" autocomplete="off">
+      <datalist id="family-list"></datalist>
+    </label>
+    <p class="status" id="form-status"></p>
+    <div class="modal-actions">
+      <button class="btn danger" type="button" id="f-delete" hidden>Supprimer</button>
+      <span class="spacer"></span>
+      <button class="btn" type="button" id="f-cancel">Annuler</button>
+      <button class="btn primary" type="submit" id="f-save">Enregistrer</button>
+    </div>
+  </form>
+</div>
+
+<div class="modal-back" id="bulk-modal" hidden>
+  <form class="panel modal" id="bulk-form">
+    <div class="modal-head"><h2>Ajouter en vrac</h2><button class="x" type="button" id="bulk-close" title="Fermer">×</button></div>
+    <p class="muted">Une ligne par site : <code>url | nom | description | famille</code>. Le nom et la description sont optionnels ; une ligne <code># Famille</code> range tout ce qui suit dans cette famille. Les URL seules sont acceptées, le nom sera le domaine.</p>
+    <textarea id="bulk-text" class="mono" rows="10" placeholder="# DevOps&#10;https://devdocs.io | DevDocs | Toute la doc au même endroit&#10;https://github.com/trending&#10;&#10;# News&#10;https://www.zataz.com | ZATAZ | Actualité sécurité en français"></textarea>
+    <p class="status" id="bulk-status"></p>
+    <div class="modal-actions">
+      <span class="spacer"></span>
+      <button class="btn" type="button" id="bulk-cancel">Annuler</button>
+      <button class="btn primary" type="submit">Ajouter</button>
+    </div>
+  </form>
+</div>
+
+<script src="/deck.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
