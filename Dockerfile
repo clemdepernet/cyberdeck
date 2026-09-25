@@ -71,7 +71,7 @@ RUN set -eux; \
 # ───────────────────────── runtime ─────────────────────────
 FROM node:22-bookworm-slim AS runtime
 ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    DATA_DIR=/data PUID=1000 PGID=1000 PUBLIC_URL="" MAX_LINKS=10 HIBP_API_KEY="" VT_API_KEY="" APP_USER=toolbox APP_PASSWORD=""
+    DATA_DIR=/data PUID=1000 PGID=1000 PUBLIC_URL="" MAX_LINKS=10 HIBP_API_KEY="" VT_API_KEY="" APP_USER=toolbox APP_PASSWORD="" APP_USERS=""
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends nginx supervisor python3 python3-venv openssl ca-certificates curl \

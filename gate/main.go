@@ -103,7 +103,7 @@ func loadPublicTools(manifest string) []string {
 }
 
 type Gate struct {
-	user, password string
+	accounts       map[string]string // user -> password
 	secret         []byte
 	publicPrefixes []string
 	tmpl           *template.Template
@@ -111,25 +111,55 @@ type Gate struct {
 	fails          map[string][]time.Time
 }
 
-func newGate(user, password string, secret []byte, publicPrefixes []string) *Gate {
+func newGate(accounts map[string]string, secret []byte, publicPrefixes []string) *Gate {
 	t := template.Must(template.ParseFS(loginFS, "login.html"))
-	return &Gate{user: user, password: password, secret: secret, publicPrefixes: publicPrefixes, tmpl: t, fails: map[string][]time.Time{}}
+	if accounts == nil {
+		accounts = map[string]string{}
+	}
+	return &Gate{accounts: accounts, secret: secret, publicPrefixes: publicPrefixes, tmpl: t, fails: map[string][]time.Time{}}
 }
 
-func (g *Gate) enabled() bool { return g.password != "" }
+// parseAccounts builds the account list from APP_USER/APP_PASSWORD plus
+// APP_USERS ("alice:secret,bob:other"). Entries without a password are dropped.
+func parseAccounts(user, password, extra string) map[string]string {
+	out := map[string]string{}
+	if password != "" {
+		if user == "" {
+			user = "toolbox"
+		}
+		out[user] = password
+	}
+	for _, pair := range strings.Split(extra, ",") {
+		u, p, ok := strings.Cut(strings.TrimSpace(pair), ":")
+		u, p = strings.TrimSpace(u), strings.TrimSpace(p)
+		if ok && u != "" && p != "" {
+			out[u] = p
+		}
+	}
+	return out
+}
 
+func (g *Gate) enabled() bool { return len(g.accounts) > 0 }
+
+// credentialsOK compares against every account so timing does not reveal
+// which identifiers exist.
 func (g *Gate) credentialsOK(user, password string) bool {
-	u := subtle.ConstantTimeCompare(hashOf(user), hashOf(g.user))
-	p := subtle.ConstantTimeCompare(hashOf(password), hashOf(g.password))
-	return u == 1 && p == 1
+	found := 0
+	for u, p := range g.accounts {
+		uOK := subtle.ConstantTimeCompare(hashOf(user), hashOf(u))
+		pOK := subtle.ConstantTimeCompare(hashOf(password), hashOf(p))
+		found |= uOK & pOK
+	}
+	return found == 1
 }
 
 func hashOf(s string) []byte { h := sha256.Sum256([]byte(s)); return h[:] }
 
-// token is "<expiry unix>.<hmac>" — no user data inside, one account only.
-func (g *Gate) token(expiry time.Time) string {
-	exp := strconv.FormatInt(expiry.Unix(), 10)
-	return exp + "." + g.sign(exp)
+// token is "<user b64>.<expiry unix>.<hmac>": the user is only there to be
+// shown in the shell, the signature is what grants access.
+func (g *Gate) token(user string, expiry time.Time) string {
+	payload := base64.RawURLEncoding.EncodeToString([]byte(user)) + "." + strconv.FormatInt(expiry.Unix(), 10)
+	return payload + "." + g.sign(payload)
 }
 
 func (g *Gate) sign(payload string) string {
@@ -138,24 +168,46 @@ func (g *Gate) sign(payload string) string {
 	return base64.RawURLEncoding.EncodeToString(m.Sum(nil))
 }
 
-func (g *Gate) tokenOK(tok string) bool {
-	exp, sig, found := strings.Cut(tok, ".")
-	if !found || !hmac.Equal([]byte(sig), []byte(g.sign(exp))) {
-		return false
+// tokenUser returns the user of a valid token, or "" when it is not valid.
+func (g *Gate) tokenUser(tok string) string {
+	parts := strings.Split(tok, ".")
+	if len(parts) != 3 {
+		return ""
 	}
-	n, err := strconv.ParseInt(exp, 10, 64)
-	return err == nil && time.Now().Unix() < n
+	payload := parts[0] + "." + parts[1]
+	if !hmac.Equal([]byte(parts[2]), []byte(g.sign(payload))) {
+		return ""
+	}
+	n, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil || time.Now().Unix() >= n {
+		return ""
+	}
+	raw, err := base64.RawURLEncoding.DecodeString(parts[0])
+	if err != nil {
+		return ""
+	}
+	if _, known := g.accounts[string(raw)]; !known {
+		return "" // account removed since the cookie was issued
+	}
+	return string(raw)
 }
 
-func (g *Gate) sessionOK(r *http.Request) bool {
-	if c, err := r.Cookie(cookieName); err == nil && g.tokenOK(c.Value) {
-		return true
+func (g *Gate) tokenOK(tok string) bool { return g.tokenUser(tok) != "" }
+
+// sessionUser returns who is asking: cookie first, then Basic auth for scripts.
+func (g *Gate) sessionUser(r *http.Request) string {
+	if c, err := r.Cookie(cookieName); err == nil {
+		if u := g.tokenUser(c.Value); u != "" {
+			return u
+		}
 	}
 	if u, p, ok := r.BasicAuth(); ok && g.credentialsOK(u, p) {
-		return true
+		return u
 	}
-	return false
+	return ""
 }
+
+func (g *Gate) sessionOK(r *http.Request) bool { return g.sessionUser(r) != "" }
 
 func clientIP(r *http.Request) string {
 	if f := r.Header.Get("X-Forwarded-For"); f != "" {
@@ -212,7 +264,8 @@ func (g *Gate) check(w http.ResponseWriter, r *http.Request) {
 func (g *Gate) status(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
-	json.NewEncoder(w).Encode(map[string]any{"auth": g.enabled(), "logged_in": !g.enabled() || g.sessionOK(r), "user": g.user, "public": g.publicPrefixes})
+	user := g.sessionUser(r)
+	json.NewEncoder(w).Encode(map[string]any{"auth": g.enabled(), "logged_in": !g.enabled() || user != "", "user": user, "public": g.publicPrefixes})
 }
 
 func wantsJSON(r *http.Request) bool {
@@ -228,7 +281,7 @@ func (g *Gate) render(w http.ResponseWriter, r *http.Request, status int, next, 
 		if errMsg != "" {
 			json.NewEncoder(w).Encode(map[string]string{"error": errMsg})
 		} else {
-			json.NewEncoder(w).Encode(map[string]any{"ok": true, "user": g.user})
+			json.NewEncoder(w).Encode(map[string]any{"ok": true, "user": r.PostFormValue("user")})
 		}
 		return
 	}
@@ -261,14 +314,15 @@ func (g *Gate) login(w http.ResponseWriter, r *http.Request) {
 			g.render(w, r, http.StatusTooManyRequests, next, "Trop d'essais. Attends une minute.")
 			return
 		}
-		if !g.credentialsOK(r.PostFormValue("user"), r.PostFormValue("password")) {
+		user := r.PostFormValue("user")
+		if !g.credentialsOK(user, r.PostFormValue("password")) {
 			g.noteFail(ip)
 			log.Printf("gate: refused login from %s", ip)
 			g.render(w, r, http.StatusUnauthorized, next, "Identifiant ou mot de passe incorrect.")
 			return
 		}
-		http.SetCookie(w, &http.Cookie{Name: cookieName, Value: g.token(time.Now().Add(sessionTTL)), Path: "/", HttpOnly: true, Secure: secure(r), SameSite: http.SameSiteLaxMode, MaxAge: int(sessionTTL.Seconds())})
-		log.Printf("gate: login from %s", ip)
+		http.SetCookie(w, &http.Cookie{Name: cookieName, Value: g.token(user, time.Now().Add(sessionTTL)), Path: "/", HttpOnly: true, Secure: secure(r), SameSite: http.SameSiteLaxMode, MaxAge: int(sessionTTL.Seconds())})
+		log.Printf("gate: login of %q from %s", user, ip)
 		if wantsJSON(r) {
 			g.render(w, r, http.StatusOK, next, "")
 			return
@@ -320,11 +374,7 @@ func loadSecret(dataDir string) []byte {
 }
 
 func main() {
-	user := os.Getenv("APP_USER")
-	if user == "" {
-		user = "toolbox"
-	}
-	password := os.Getenv("APP_PASSWORD")
+	accounts := parseAccounts(os.Getenv("APP_USER"), os.Getenv("APP_PASSWORD"), os.Getenv("APP_USERS"))
 	dataDir := os.Getenv("DATA_DIR")
 	if dataDir == "" {
 		dataDir = "./data"
@@ -337,10 +387,14 @@ func main() {
 	if manifest == "" {
 		manifest = "/app/shell/tools.json"
 	}
-	g := newGate(user, password, loadSecret(dataDir), loadPublicTools(manifest))
+	g := newGate(accounts, loadSecret(dataDir), loadPublicTools(manifest))
 	log.Printf("gate: public tools: %v", g.publicPrefixes)
 	if g.enabled() {
-		log.Printf("gate: login required (user %q), listening on %s", user, port)
+		names := make([]string, 0, len(accounts))
+		for u := range accounts {
+			names = append(names, u)
+		}
+		log.Printf("gate: login required (accounts %v), listening on %s", names, port)
 	} else {
 		log.Printf("gate: APP_PASSWORD unset, deck is open; listening on %s", port)
 	}

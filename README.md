@@ -31,6 +31,7 @@ Ou avec le `docker-compose.yml` fourni. L'image est multi-arch (amd64, arm64 : e
 | --- | --- | --- |
 | `PUBLIC_URL` | déduit de la requête | URL publique, utilisée dans les liens et QR codes des pastes |
 | `APP_PASSWORD` | vide (ouvert) | Demande une connexion (identifiant `APP_USER`, `toolbox` par défaut) pour les outils protégés : l'accueil et les outils marqués `"public": true` dans leur `tool.json` (Copy-paste, Liens courts) restent utilisables par tout le monde, les autres ouvrent une fenêtre de connexion sur fond flouté. Cookie de session de 30 jours, `curl -u` accepté pour les scripts, `/s/…`, `/p/CODE` et `/health` toujours ouverts |
+| `APP_USERS` | vide | Comptes supplémentaires, paires `identifiant:motdepasse` séparées par des virgules (`client:secret,audit:autre`) |
 | `PUID` / `PGID` | 1000 | Propriétaire de `/data` |
 | `TZ` | UTC | Fuseau horaire des logs |
 | `MAX_LINKS` | 10 | Nombre maximal de liens courts |

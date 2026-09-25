@@ -12,7 +12,7 @@ import (
 )
 
 func TestPublicRules(t *testing.T) {
-	g := newGate("clem", "pw", []byte("s"), []string{"/paste/", "/links/"})
+	g := newGate(map[string]string{"clem": "pw"}, []byte("s"), []string{"/paste/", "/links/"})
 	yes := []string{
 		"GET /", "GET /index.html", "GET /app.js", "GET /app.css", "GET /tools.json",
 		"GET /health", "GET /theme.css", "GET /favicon.svg", "GET /deck.js",
@@ -38,9 +38,27 @@ func TestPublicRules(t *testing.T) {
 		}
 	}
 	// Without the flag, only reading a paste stays open.
-	strict := newGate("clem", "pw", []byte("s"), nil)
+	strict := newGate(map[string]string{"clem": "pw"}, []byte("s"), nil)
 	if !strict.public("GET", "/paste/api/pastes/K7X2M/raw") || strict.public("POST", "/paste/api/pastes") || strict.public("GET", "/links/") {
 		t.Error("built-in paste reading rules changed")
+	}
+}
+
+func TestAccounts(t *testing.T) {
+	a := parseAccounts("", "", "")
+	if len(a) != 0 {
+		t.Fatal("no password must mean no account")
+	}
+	a = parseAccounts("", "pw", " client : secret , bad, nopass:, :x ,eve:e:v")
+	if a["toolbox"] != "pw" || a["client"] != "secret" || a["eve"] != "e:v" || len(a) != 3 {
+		t.Fatalf("parsed %v", a)
+	}
+	g := newGate(a, []byte("s"), nil)
+	if !g.credentialsOK("client", "secret") || !g.credentialsOK("toolbox", "pw") || g.credentialsOK("client", "pw") || g.credentialsOK("", "") {
+		t.Fatal("credential check across accounts is wrong")
+	}
+	if check(t, g, "GET", "/pivot/", "", [2]string{"client", "secret"}) != 200 {
+		t.Fatal("second account refused")
 	}
 }
 
@@ -58,18 +76,25 @@ func TestLoadPublicTools(t *testing.T) {
 }
 
 func TestTokens(t *testing.T) {
-	g := newGate("clem", "pw", []byte("secret"), nil)
-	tok := g.token(time.Now().Add(time.Hour))
+	g := newGate(map[string]string{"clem": "pw"}, []byte("secret"), nil)
+	tok := g.token("clem", time.Now().Add(time.Hour))
 	if !g.tokenOK(tok) {
 		t.Fatal("fresh token refused")
 	}
-	if g.tokenOK(g.token(time.Now().Add(-time.Second))) {
+	if g.tokenOK(g.token("clem", time.Now().Add(-time.Second))) {
 		t.Fatal("expired token accepted")
 	}
-	if g.tokenOK(tok+"x") || g.tokenOK("1."+strings.Split(tok, ".")[1]) || g.tokenOK("garbage") {
+	parts := strings.Split(tok, ".")
+	if g.tokenOK(tok+"x") || g.tokenOK(parts[0]+".1."+parts[2]) || g.tokenOK("garbage") || g.tokenOK("Ym9i."+parts[1]+"."+parts[2]) {
 		t.Fatal("tampered token accepted")
 	}
-	other := newGate("clem", "pw", []byte("other-secret"), nil)
+	if g.tokenUser(tok) != "clem" {
+		t.Fatalf("token user: %q", g.tokenUser(tok))
+	}
+	if g.tokenOK(g.token("ghost", time.Now().Add(time.Hour))) {
+		t.Fatal("token for an unknown account accepted")
+	}
+	other := newGate(map[string]string{"clem": "pw"}, []byte("other-secret"), nil)
 	if other.tokenOK(tok) {
 		t.Fatal("token accepted with another secret")
 	}
@@ -92,18 +117,18 @@ func check(t *testing.T, g *Gate, method, uri string, cookie string, basic [2]st
 }
 
 func TestCheck(t *testing.T) {
-	open := newGate("clem", "", []byte("s"), nil)
+	open := newGate(nil, []byte("s"), nil)
 	if check(t, open, "GET", "/", "", [2]string{}) != 200 {
 		t.Fatal("open deck must let everything through")
 	}
-	g := newGate("clem", "pw", []byte("s"), nil)
+	g := newGate(map[string]string{"clem": "pw"}, []byte("s"), nil)
 	if check(t, g, "GET", "/pivot/", "", [2]string{}) != 401 {
 		t.Fatal("protected path without session must be 401")
 	}
 	if check(t, g, "GET", "/s/abc", "", [2]string{}) != 200 {
 		t.Fatal("short link must pass")
 	}
-	if check(t, g, "GET", "/pivot/", g.token(time.Now().Add(time.Hour)), [2]string{}) != 200 {
+	if check(t, g, "GET", "/pivot/", g.token("clem", time.Now().Add(time.Hour)), [2]string{}) != 200 {
 		t.Fatal("valid cookie refused")
 	}
 	if check(t, g, "GET", "/pivot/", "bad", [2]string{}) != 401 {
@@ -118,7 +143,7 @@ func TestCheck(t *testing.T) {
 }
 
 func TestLoginFlow(t *testing.T) {
-	g := newGate("clem", "pw", []byte("s"), nil)
+	g := newGate(map[string]string{"clem": "pw"}, []byte("s"), nil)
 	h := g.handler()
 	get := func(path string) *httptest.ResponseRecorder {
 		rec := httptest.NewRecorder()

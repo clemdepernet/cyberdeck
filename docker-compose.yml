@@ -17,4 +17,5 @@ services:
       # - VT_API_KEY=${VT_API_KEY}                # optional: VirusTotal reports in Verdict
       # - APP_USER=me                             # optional: login name (default toolbox)
       # - APP_PASSWORD=change-me                  # optional: login page in front of the deck; short links and paste reading stay public
+      # - APP_USERS=guest:other-secret            # optional: extra accounts, "user:password" pairs separated by commas
     restart: unless-stopped
