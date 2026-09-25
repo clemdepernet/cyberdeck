@@ -6,6 +6,7 @@ Une boîte à outils web auto-hébergée pour consultants en cybersécurité : *
 
 | Tiroir | Ce qu'il fait | Techno |
 | --- | --- | --- |
+| **Pivot** | Cartographie d'infrastructure en glisser-déposer : hôtes, conteneurs, services, applications web, bases, équipements réseau, cloud, zones et notes, reliés par des liens libellés (port, HTTP, tunnel, confiance…) ; import nmap (-oN/-oX/-oG), gobuster, ffuf, dirb ; disposition automatique ; export PNG, PDF ou JSON ; cartes enregistrées sur le serveur | React · React Flow · dagre · Node |
 | **Whiteboard** | Dessin et schémas avec Excalidraw, planches nommées enregistrées sur le serveur, autosave, export PNG/SVG | React · Excalidraw · Node |
 | **CyberChef** | Le build officiel du GCHQ, servi tel quel : encodages, chiffrement, compression, parsing, recettes chaînées | CyberChef (Apache-2.0), téléchargé au build |
 | **Copy-paste** | Un texte → un code de 5 caractères + QR + lien ; `curl /p/CODE` depuis un terminal ; expiration, destruction à la lecture | Go |
@@ -34,7 +35,7 @@ Ou avec le `docker-compose.yml` fourni. L'image est multi-arch (amd64, arm64 : e
 | `MAX_LINKS` | 10 | Nombre maximal de liens courts |
 | `HIBP_API_KEY` | vide | Clé [Have I Been Pwned](https://haveibeenpwned.com/API/Key) : sans elle, la recherche par e-mail de Fuites est désactivée, le reste fonctionne |
 
-`/data` contient un sous-dossier par outil (`whiteboard/`, `paste/`…). Rien d'autre à sauvegarder.
+`/data` contient un sous-dossier par outil (`whiteboard/`, `pivot/`, `paste/`…). Rien d'autre à sauvegarder.
 
 Le deck est pensé pour être exposé derrière un reverse proxy ou un tunnel Cloudflare. Sans `APP_PASSWORD`, tout le monde peut créer des pastes : le service Go limite le débit par IP (création et lecture) et les codes sont tirés dans un alphabet de 31 caractères sur 5 positions.
 
@@ -42,6 +43,7 @@ Le deck est pensé pour être exposé derrière un reverse proxy ou un tunnel Cl
 
 - `Alt+1` … `Alt+9` : changer d'outil, `Alt+0` : replier le bandeau.
 - `Ctrl+S` dans le whiteboard : enregistrer maintenant (sinon autosave 1,5 s après le dernier trait).
+- Dans Pivot : `Ctrl+I` ouvre l'import de scan, `Ctrl+Z` / `Ctrl+Y` annule et refait, `Ctrl+D` duplique, `Suppr` efface, `Maj` + glisser sélectionne une zone. « Éclater les ports » crée un nœud Service par port ouvert d'un hôte.
 - `https://…/s/raccourci` : lien court, accessible sans mot de passe même si `APP_PASSWORD` est défini.
 - `https://…/p/CODE` : ouvre un paste. Avec `curl`, `wget` ou `Accept: text/plain`, renvoie le texte brut.
 - Coller une image (`Ctrl+V`) dans Alpha suffit, pas besoin de fichier.
@@ -81,7 +83,7 @@ docker build --target test .        # tests Go, Python et Node dans l'image rée
 docker compose up --build           # le deck sur http://localhost:7850
 ```
 
-Tests unitaires par outil : `tools/paste` (`go test`), `tools/alpha` (`pytest`), `tools/whiteboard` (`node --test server.test.mjs`).
+Tests unitaires par outil : `tools/paste` (`go test`), `tools/alpha` (`pytest`), `tools/whiteboard` (`node --test server.test.mjs`), `tools/pivot` (`node --test server.test.mjs` et `npm test` dans `app/` pour les parseurs de scans).
 
 ## Licence
 

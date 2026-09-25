@@ -17,6 +17,14 @@ RUN npm run build \
  && cp -r node_modules/@excalidraw/excalidraw/dist/prod/fonts dist/fonts \
  && ls dist
 
+# ───────────────────────── pivot: React + React Flow, built with Vite (parser tests run here) ─────────────────────────
+FROM node:22-bookworm-slim AS pivot-build
+WORKDIR /build
+COPY tools/pivot/app/package.json tools/pivot/app/package-lock.json* ./
+RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+COPY tools/pivot/app/ ./
+RUN npm test && npm run build && ls dist
+
 # ───────────────────────── paste: Go, static binary ─────────────────────────
 FROM golang:1.23-bookworm AS paste-build
 WORKDIR /build
@@ -86,6 +94,7 @@ COPY entrypoint.sh /app/entrypoint.sh
 
 # compiled artefacts
 COPY --from=whiteboard-build /build/dist /app/tools/whiteboard/dist
+COPY --from=pivot-build /build/dist /app/tools/pivot/dist
 COPY --from=paste-build /build/paste /app/tools/paste/paste
 COPY --from=cyberchef-build /cyberchef /app/tools/cyberchef/dist
 COPY --from=convert-build /build/convert /app/tools/convert/convert
@@ -93,6 +102,7 @@ COPY --from=links-build /build/links /app/tools/links/links
 
 RUN set -eux; \
     rm -rf /app/tools/whiteboard/app; \
+    rm -rf /app/tools/pivot/app; \
     cp /app/shell/nginx.conf /etc/nginx/nginx.conf; \
     : > /etc/nginx/auth.conf; \
     python3 /app/scripts/build-manifest.py; \
@@ -106,6 +116,7 @@ RUN /opt/alpha/bin/pip install pytest httpx \
  && /opt/leaks/bin/pip install pytest \
  && cd /app/tools/leaks && /opt/leaks/bin/python -m pytest -q \
  && cd /app/tools/whiteboard && node --test server.test.mjs \
+ && cd /app/tools/pivot && node --test server.test.mjs \
  && su deck -s /bin/bash -c /app/tools/convert/smoke.sh
 
 FROM runtime
