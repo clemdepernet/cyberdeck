@@ -1,4 +1,4 @@
-// Liens courts: a deliberately small URL shortener. MAX_LINKS (default 10)
+// Relay: a deliberately small URL shortener. MAX_LINKS (default 10)
 // links live in one JSON file; each redirect bumps a click counter.
 package main
 

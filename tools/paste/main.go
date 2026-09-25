@@ -1,4 +1,4 @@
-// Copy-paste: share a snippet between machines with a short code.
+// Dead Drop: share a snippet between machines with a short code.
 //
 // Pastes are JSON files under DATA_DIR, swept every minute. Codes use an
 // alphabet without look-alike characters so they can be read out loud or typed

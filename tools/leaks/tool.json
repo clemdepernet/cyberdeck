@@ -1,6 +1,6 @@
 {
   "id": "leaks",
-  "name": "Fuites",
+  "name": "Leaks",
   "tagline": "Une adresse e-mail : dans quelles bases a-t-elle fuité ? Et à côté, le fil des dernières fuites françaises.",
   "tech": "Python · FastAPI · httpx · HIBP v3",
   "icon": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3 5 6v6c0 4.5 3 7.5 7 9 4-1.5 7-4.5 7-9V6l-7-3z\"/><path d=\"M9.5 12.5 11 14l3.5-4\"/></svg>",

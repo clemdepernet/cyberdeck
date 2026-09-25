@@ -1,4 +1,4 @@
-"""Fuites: has an e-mail address appeared in known breaches, and what leaked lately?
+"""Leaks: has an e-mail address appeared in known breaches, and what leaked lately?
 
 E-mail lookups go to Have I Been Pwned v3 and need HIBP_API_KEY. The breach
 catalogue, the Pwned Passwords range API and the news feeds are free. Nothing
@@ -33,7 +33,7 @@ FEEDS = [
     ("CERT-FR alertes", "https://www.cert.ssi.gouv.fr/alerte/feed/", True),
 ]
 
-app = FastAPI(title="Cyberdeck · Fuites", docs_url=None, redoc_url=None)
+app = FastAPI(title="Cyberdeck · Leaks", docs_url=None, redoc_url=None)
 
 
 def api_key() -> str:

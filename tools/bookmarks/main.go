@@ -1,4 +1,4 @@
-// Signets: a catalogue of useful sites, grouped by family. One JSON file,
+// Beacon: a catalogue of useful sites, grouped by family. One JSON file,
 // no database; adding a site is a URL, the title and description are
 // fetched from the page when possible.
 package main
@@ -281,7 +281,7 @@ func (s *Store) add(in Site) (Site, error) {
 	defer s.mu.Unlock()
 	for _, x := range s.sites {
 		if strings.EqualFold(strings.TrimRight(x.URL, "/"), strings.TrimRight(site.URL, "/")) {
-			return x, errors.New("déjà dans les signets : " + x.Name)
+			return x, errors.New("déjà dans Beacon : " + x.Name)
 		}
 	}
 	now := time.Now().UTC()
@@ -466,7 +466,7 @@ func peek(rawURL string) (map[string]string, error) {
 	}
 	client := &http.Client{Timeout: peekWait}
 	req, _ := http.NewRequest(http.MethodGet, u, nil)
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; cyberdeck-signets/1.0)")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; cyberdeck-beacon/1.0)")
 	req.Header.Set("Accept", "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5")
 	req.Header.Set("Accept-Language", "fr,en;q=0.7")
 	resp, err := client.Do(req)
@@ -622,7 +622,7 @@ func newServer(store *Store) *Server {
 	})
 	s.mux.HandleFunc("GET /bookmarks/api/export", func(w http.ResponseWriter, r *http.Request) {
 		sites, _ := store.list()
-		w.Header().Set("Content-Disposition", `attachment; filename="signets.json"`)
+		w.Header().Set("Content-Disposition", `attachment; filename="beacon.json"`)
 		writeJSON(w, 200, sites)
 	})
 	s.mux.HandleFunc("GET /bookmarks/api/health", func(w http.ResponseWriter, r *http.Request) {

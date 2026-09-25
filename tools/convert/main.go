@@ -1,4 +1,4 @@
-// Convertisseur: upload a file, get every sensible output format, download.
+// Converter: upload a file, get every sensible output format, download.
 //
 // Each upload lives in its own folder under WORK_DIR for 30 minutes. External
 // tools (LibreOffice, ImageMagick, Poppler, Pandoc, img2pdf, ffmpeg) do the work;

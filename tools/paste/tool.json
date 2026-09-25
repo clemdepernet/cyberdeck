@@ -1,6 +1,6 @@
 {
   "id": "paste",
-  "name": "Copy-paste",
+  "name": "Dead Drop",
   "tagline": "Un texte, un code court, un QR. À récupérer depuis n'importe quelle machine.",
   "tech": "Go · net/http · fichiers JSON",
   "icon": "paste",

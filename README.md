@@ -9,12 +9,12 @@ Une boîte à outils web auto-hébergée pour consultants en cybersécurité : *
 | **Pivot** | Cartographie d'infrastructure en glisser-déposer : hôtes, conteneurs, services, applications web, bases, équipements réseau, cloud, zones et notes, reliés par des liens libellés (port, HTTP, tunnel, confiance…) ; import nmap (-oN/-oX/-oG), gobuster, ffuf, dirb ; disposition automatique ; export PNG, PDF ou JSON ; cartes enregistrées sur le serveur | React · React Flow · dagre · Node |
 | **Whiteboard** | Dessin et schémas avec Excalidraw, planches nommées enregistrées sur le serveur, autosave, export PNG/SVG | React · Excalidraw · Node |
 | **CyberChef** | Le build officiel du GCHQ, servi tel quel : encodages, chiffrement, compression, parsing, recettes chaînées | CyberChef (Apache-2.0), téléchargé au build |
-| **Copy-paste** | Un texte → un code de 5 caractères + QR + lien ; `curl /p/CODE` depuis un terminal ; expiration, destruction à la lecture | Go |
-| **Convertisseur** | Dépose un fichier, choisis la sortie : Word/Excel/PowerPoint/OpenDocument ↔ PDF, PDF → images ou Word, Markdown → HTML/Word/PDF, images ↔ PNG/JPEG/WebP/ICO/PDF, audio et vidéo via ffmpeg | Go pilotant LibreOffice, ImageMagick, Poppler, Pandoc, img2pdf, ffmpeg |
-| **Fuites** | Une adresse e-mail → les bases où elle a fuité (Have I Been Pwned v3, clé requise), pastes, test de mot de passe par k-anonymat, et un fil des dernières fuites françaises (Bonjour la fuite, ZATAZ, Numerama, CERT-FR) et mondiales (HIBP) | Python · FastAPI · httpx |
+| **Dead Drop** | Un texte → un code de 5 caractères + QR + lien ; `curl /p/CODE` depuis un terminal ; expiration, destruction à la lecture | Go |
+| **Converter** | Dépose un fichier, choisis la sortie : Word/Excel/PowerPoint/OpenDocument ↔ PDF, PDF → images ou Word, Markdown → HTML/Word/PDF, images ↔ PNG/JPEG/WebP/ICO/PDF, audio et vidéo via ffmpeg | Go pilotant LibreOffice, ImageMagick, Poppler, Pandoc, img2pdf, ffmpeg |
+| **Leaks** | Une adresse e-mail → les bases où elle a fuité (Have I Been Pwned v3, clé requise), pastes, test de mot de passe par k-anonymat, et un fil des dernières fuites françaises (Bonjour la fuite, ZATAZ, Numerama, CERT-FR) et mondiales (HIBP) | Python · FastAPI · httpx |
 | **Verdict** | Un hash (MD5, SHA-1, SHA-256), une URL, un domaine, une IP ou un fichier déposé (32 Mo max) → le rapport VirusTotal : verdict global, classification de menace, détails (noms, taille, signataire, whois, DNS, redirections…), tableau moteur par moteur filtrable ; soumission d'URL ou de fichier inconnus avec suivi de l'analyse | Python · FastAPI · httpx · VirusTotal v3 |
-| **Liens courts** | Dix liens courts maximum sur ton domaine (`/s/mon-raccourci`), compteur de clics, QR, raccourci personnalisable | Go |
-| **Signets** | Un annuaire de sites utiles rangés par famille (DevOps, cybersécurité, news, cracking, forensic, OSINT… et n'importe quelle autre) : une carte par site avec nom, description et favicon ; ajout par URL avec lecture automatique du titre et de la description, ajout en vrac (`url | nom | description | famille`), glisser-déposer d'un lien, filtre, renommage de famille, export JSON | Go |
+| **Relay** | Dix liens courts maximum sur ton domaine (`/s/mon-raccourci`), compteur de clics, QR, raccourci personnalisable | Go |
+| **Beacon** | Un annuaire de sites utiles rangés par famille (DevOps, cybersécurité, news, cracking, forensic, OSINT… et n'importe quelle autre) : une carte par site avec nom, description et favicon ; ajout par URL avec lecture automatique du titre et de la description, ajout en vrac (`url | nom | description | famille`), glisser-déposer d'un lien, filtre, renommage de famille, export JSON | Go |
 | **Alpha** | Rendre le noir, le blanc ou une couleur transparent (avec tolérance et bords adoucis), canal alpha, canaux RVB, 32 bit-planes, pixels cachés sous la transparence, extraction LSB | Python · FastAPI · Pillow · NumPy |
 | **JSON** | Validation avec position d'erreur, indentation, compactage, tri des clés, réparation de JSON approximatif, arbre repliable, recherche par chemin | JavaScript vanilla, 100 % navigateur |
 
@@ -31,12 +31,12 @@ Ou avec le `docker-compose.yml` fourni. L'image est multi-arch (amd64, arm64 : e
 | Variable | Défaut | Rôle |
 | --- | --- | --- |
 | `PUBLIC_URL` | déduit de la requête | URL publique, utilisée dans les liens et QR codes des pastes |
-| `APP_PASSWORD` | vide (ouvert) | Demande une connexion (identifiant `APP_USER`, `toolbox` par défaut) pour les outils protégés : l'accueil et les outils marqués `"public": true` dans leur `tool.json` (Copy-paste, Liens courts) restent utilisables par tout le monde, les autres ouvrent une fenêtre de connexion sur fond flouté. Cookie de session de 30 jours, `curl -u` accepté pour les scripts, `/s/…`, `/p/CODE` et `/health` toujours ouverts |
+| `APP_PASSWORD` | vide (ouvert) | Demande une connexion (identifiant `APP_USER`, `toolbox` par défaut) pour les outils protégés : l'accueil et les outils marqués `"public": true` dans leur `tool.json` (Dead Drop, Relay) restent utilisables par tout le monde, les autres ouvrent une fenêtre de connexion sur fond flouté. Cookie de session de 30 jours, `curl -u` accepté pour les scripts, `/s/…`, `/p/CODE` et `/health` toujours ouverts |
 | `APP_USERS` | vide | Comptes supplémentaires, paires `identifiant:motdepasse` séparées par des virgules (`client:secret,audit:autre`) |
 | `PUID` / `PGID` | 1000 | Propriétaire de `/data` |
 | `TZ` | UTC | Fuseau horaire des logs |
-| `MAX_LINKS` | 10 | Nombre maximal de liens courts |
-| `HIBP_API_KEY` | vide | Clé [Have I Been Pwned](https://haveibeenpwned.com/API/Key) : sans elle, la recherche par e-mail de Fuites est désactivée, le reste fonctionne |
+| `MAX_LINKS` | 10 | Nombre maximal de liens courts dans Relay |
+| `HIBP_API_KEY` | vide | Clé [Have I Been Pwned](https://haveibeenpwned.com/API/Key) : sans elle, la recherche par e-mail de Leaks est désactivée, le reste fonctionne |
 | `VT_API_KEY` | vide | Clé [VirusTotal](https://www.virustotal.com/gui/my-apikey) (gratuite : 4 requêtes/min, 500/jour) : sans elle, Verdict est désactivé |
 
 `/data` contient un sous-dossier par outil (`whiteboard/`, `pivot/`, `paste/`…). Rien d'autre à sauvegarder.
@@ -51,7 +51,7 @@ Le deck est pensé pour être exposé derrière un reverse proxy ou un tunnel Cl
 - `https://…/s/raccourci` : lien court, accessible sans connexion même si `APP_PASSWORD` est défini.
 - `https://…/p/CODE` : ouvre un paste en lecture, sans connexion. Avec `curl`, `wget` ou `Accept: text/plain`, renvoie le texte brut.
 - Coller une image (`Ctrl+V`) dans Alpha suffit, pas besoin de fichier.
-- Le convertisseur limite les envois à 512 Mo, garde le fichier 30 minutes et lance deux conversions en parallèle au maximum. Les conversions refusées (PDF → MP3) répondent 422 proprement.
+- Converter limite les envois à 512 Mo, garde le fichier 30 minutes et lance deux conversions en parallèle au maximum. Les conversions refusées (PDF → MP3) répondent 422 proprement.
 - CyberChef garde ses options (thème sombre, favoris) dans le navigateur, via son menu Options.
 
 ## Ajouter un outil

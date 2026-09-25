@@ -179,7 +179,7 @@ func TestExtractAndPeek(t *testing.T) {
 	if rec := do(t, s, "GET", "/bookmarks/api/peek?url=localhost", nil); rec.Code != 502 || !strings.Contains(rec.Body.String(), "error") {
 		t.Fatalf("peek error: %d %s", rec.Code, rec.Body.String())
 	}
-	if rec := do(t, s, "GET", "/bookmarks/api/export", nil); rec.Code != 200 || !strings.Contains(rec.Header().Get("Content-Disposition"), "signets.json") {
+	if rec := do(t, s, "GET", "/bookmarks/api/export", nil); rec.Code != 200 || !strings.Contains(rec.Header().Get("Content-Disposition"), "beacon.json") {
 		t.Fatal("export")
 	}
 	_ = http.StatusOK

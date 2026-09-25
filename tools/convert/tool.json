@@ -1,6 +1,6 @@
 {
   "id": "convert",
-  "name": "Convertisseur",
+  "name": "Converter",
   "tagline": "Dépose un fichier, choisis le format de sortie. Office, PDF, images, audio, vidéo, Markdown.",
   "tech": "Go · LibreOffice · ImageMagick · Poppler · Pandoc · ffmpeg",
   "icon": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 7h11l-3-3M20 17H9l3 3\"/><rect x=\"3\" y=\"10\" width=\"7\" height=\"7\" rx=\"1.5\"/><rect x=\"14\" y=\"7\" width=\"7\" height=\"7\" rx=\"1.5\" opacity=\".55\"/></svg>",
