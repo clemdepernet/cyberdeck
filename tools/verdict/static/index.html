@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Verdict · Cyberdeck</title>
+  <link rel="stylesheet" href="/theme.css">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="tool-page">
+  <header class="tool-head">
+    <div>
+      <h1>Verdict</h1>
+      <p>Un hash, une URL, un domaine, une IP ou un fichier : le rapport VirusTotal, résumé puis moteur par moteur. La clé reste sur le serveur ; les résultats sont gardés en mémoire dix minutes pour économiser le quota.</p>
+    </div>
+  </header>
+
+  <div class="tool-body wrap">
+    <form class="panel block" id="form">
+      <div class="row">
+        <input type="text" id="q" class="mono" required placeholder="sha256, md5, https://…, exemple.fr, 203.0.113.7" autocomplete="off" spellcheck="false" autofocus>
+        <button class="btn primary" id="go" type="submit">Analyser</button>
+      </div>
+      <div class="drop" id="drop">
+        <span>…ou dépose un fichier ici (32 Mo max). Son empreinte est vérifiée d'abord ; s'il est inconnu, il est <strong>envoyé à VirusTotal</strong>, donc partagé avec leurs partenaires.</span>
+        <button class="btn small" type="button" id="pick">Choisir un fichier</button>
+        <input type="file" id="file" hidden>
+      </div>
+      <div class="recent" id="recent"></div>
+      <p class="dim" id="key-note"></p>
+    </form>
+
+    <p class="status" id="status" aria-live="polite"></p>
+
+    <div id="report" hidden>
+      <section class="verdict panel" id="verdict"></section>
+      <section class="grid" id="details"></section>
+      <section class="panel block" id="engines-block">
+        <div class="engines-head">
+          <h2 id="engines-title">Moteurs</h2>
+          <div class="toolbar">
+            <div class="tabs">
+              <button class="btn small active" data-view="detections">Détections</button>
+              <button class="btn small" data-view="all">Tous</button>
+            </div>
+            <input type="search" id="engine-filter" placeholder="filtrer un moteur ou un résultat">
+          </div>
+        </div>
+        <div class="engines" id="engines"></div>
+      </section>
+    </div>
+  </div>
+</div>
+<script src="/deck.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

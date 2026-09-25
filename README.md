@@ -12,6 +12,7 @@ Une boîte à outils web auto-hébergée pour consultants en cybersécurité : *
 | **Copy-paste** | Un texte → un code de 5 caractères + QR + lien ; `curl /p/CODE` depuis un terminal ; expiration, destruction à la lecture | Go |
 | **Convertisseur** | Dépose un fichier, choisis la sortie : Word/Excel/PowerPoint/OpenDocument ↔ PDF, PDF → images ou Word, Markdown → HTML/Word/PDF, images ↔ PNG/JPEG/WebP/ICO/PDF, audio et vidéo via ffmpeg | Go pilotant LibreOffice, ImageMagick, Poppler, Pandoc, img2pdf, ffmpeg |
 | **Fuites** | Une adresse e-mail → les bases où elle a fuité (Have I Been Pwned v3, clé requise), pastes, test de mot de passe par k-anonymat, et un fil des dernières fuites françaises (Bonjour la fuite, ZATAZ, Numerama, CERT-FR) et mondiales (HIBP) | Python · FastAPI · httpx |
+| **Verdict** | Un hash (MD5, SHA-1, SHA-256), une URL, un domaine, une IP ou un fichier déposé (32 Mo max) → le rapport VirusTotal : verdict global, classification de menace, détails (noms, taille, signataire, whois, DNS, redirections…), tableau moteur par moteur filtrable ; soumission d'URL ou de fichier inconnus avec suivi de l'analyse | Python · FastAPI · httpx · VirusTotal v3 |
 | **Liens courts** | Dix liens courts maximum sur ton domaine (`/s/mon-raccourci`), compteur de clics, QR, raccourci personnalisable | Go |
 | **Alpha** | Rendre le noir, le blanc ou une couleur transparent (avec tolérance et bords adoucis), canal alpha, canaux RVB, 32 bit-planes, pixels cachés sous la transparence, extraction LSB | Python · FastAPI · Pillow · NumPy |
 | **JSON** | Validation avec position d'erreur, indentation, compactage, tri des clés, réparation de JSON approximatif, arbre repliable, recherche par chemin | JavaScript vanilla, 100 % navigateur |
@@ -34,6 +35,7 @@ Ou avec le `docker-compose.yml` fourni. L'image est multi-arch (amd64, arm64 : e
 | `TZ` | UTC | Fuseau horaire des logs |
 | `MAX_LINKS` | 10 | Nombre maximal de liens courts |
 | `HIBP_API_KEY` | vide | Clé [Have I Been Pwned](https://haveibeenpwned.com/API/Key) : sans elle, la recherche par e-mail de Fuites est désactivée, le reste fonctionne |
+| `VT_API_KEY` | vide | Clé [VirusTotal](https://www.virustotal.com/gui/my-apikey) (gratuite : 4 requêtes/min, 500/jour) : sans elle, Verdict est désactivé |
 
 `/data` contient un sous-dossier par outil (`whiteboard/`, `pivot/`, `paste/`…). Rien d'autre à sauvegarder.
 
@@ -83,7 +85,7 @@ docker build --target test .        # tests Go, Python et Node dans l'image rée
 docker compose up --build           # le deck sur http://localhost:7850
 ```
 
-Tests unitaires par outil : `tools/paste` (`go test`), `tools/alpha` (`pytest`), `tools/whiteboard` (`node --test server.test.mjs`), `tools/pivot` (`node --test server.test.mjs` et `npm test` dans `app/` pour les parseurs de scans).
+Tests unitaires par outil : `tools/paste` (`go test`), `tools/alpha` (`pytest`), `tools/whiteboard` (`node --test server.test.mjs`), `tools/pivot` (`node --test server.test.mjs` et `npm test` dans `app/` pour les parseurs de scans), `tools/verdict` (`pytest`).
 
 ## Licence
 
