@@ -12,6 +12,10 @@ label select { margin-left: 6px; }
 .verdict { padding: 8px 12px; font-size: 12.5px; border-top: 1px solid var(--line); color: var(--text-muted); }
 .verdict.ok { color: var(--green); }
 .verdict.err { color: var(--red); }
+.verdict .where { font-weight: 600; }
+.verdict .goto { margin-left: 8px; vertical-align: middle; }
+.verdict .snippet { margin: 6px 0 0; padding: 6px 10px; background: var(--bg-deep); border-radius: var(--radius); color: var(--text-muted); font-size: 12px; line-height: 1.4; white-space: pre; overflow-x: auto; }
+.verdict .snippet::after { content: ''; }
 
 .tree, #text { flex: 1; overflow: auto; margin: 0; padding: 10px 14px; background: var(--bg-deep); font-size: 12.5px; line-height: 1.55; }
 #text { white-space: pre; }

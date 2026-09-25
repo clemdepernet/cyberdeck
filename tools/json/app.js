@@ -6,20 +6,38 @@
   const indentValue = () => ($('indent').value === 'tab' ? '\t' : Number($('indent').value));
 
   // ---- parsing with a useful error position ----
+  // Browsers word their errors differently: Chrome gives "at position N" (and
+  // lately "(line L column C)"), Firefox "at line L column C". Take whichever
+  // is there and derive the rest.
+  function locate(text, message) {
+    let pos = null, line = null, col = null;
+    const p = /position (\d+)/.exec(message);
+    const lc = /line (\d+) column (\d+)/.exec(message);
+    if (p) pos = +p[1];
+    if (lc) { line = +lc[1]; col = +lc[2]; }
+    if (pos !== null && line === null) {
+      const before = text.slice(0, pos);
+      line = before.split('\n').length;
+      col = pos - before.lastIndexOf('\n');
+    } else if (pos === null && line !== null) {
+      const lines = text.split('\n');
+      pos = lines.slice(0, line - 1).reduce((n, l) => n + l.length + 1, 0) + col - 1;
+    }
+    return pos === null ? null : { pos, line, col };
+  }
   function parse(text) {
     try { return { ok: true, value: JSON.parse(text) }; }
     catch (e) {
-      const m = /position (\d+)/.exec(e.message);
-      let where = '';
-      if (m) {
-        const pos = +m[1];
-        const before = text.slice(0, pos);
-        const line = before.split('\n').length, col = pos - before.lastIndexOf('\n');
-        where = ` (ligne ${line}, colonne ${col})`;
-        $('input').setSelectionRange(pos, pos + 1);
-      }
-      return { ok: false, error: e.message.replace(/^JSON\.parse: /, '') + where, pos: m ? +m[1] : null };
+      const message = e.message.replace(/^JSON\.parse: /, '').replace(/\s*\(line \d+ column \d+\)/, '').replace(/ at line \d+ column \d+( of the JSON data)?/, '').replace(/ in JSON at position \d+/, '').replace(/ at position \d+/, '');
+      return { ok: false, error: message, loc: locate(text, e.message) };
     }
+  }
+  function goTo(loc) {
+    const ta = $('input');
+    ta.focus();
+    ta.setSelectionRange(loc.pos, Math.min(loc.pos + 1, ta.value.length));
+    const lh = parseFloat(getComputedStyle(ta).lineHeight) || 20;
+    ta.scrollTop = Math.max(0, (loc.line - 3) * lh);
   }
 
   // ---- lenient repair: comments, single quotes, unquoted keys, trailing commas, python literals ----
@@ -110,10 +128,18 @@
     $('verdict').textContent = msg || 'JSON valide.';
     $('verdict').className = 'verdict ok';
   }
-  function fail(err) {
+  function fail(err, loc) {
     hasParsed = false;
-    $('verdict').textContent = 'JSON invalide : ' + err;
-    $('verdict').className = 'verdict err';
+    const v = $('verdict');
+    v.className = 'verdict err';
+    if (!loc) { v.textContent = 'JSON invalide : ' + err; $('stats').textContent = ''; return; }
+    const lineText = $('input').value.split('\n')[loc.line - 1] || '';
+    const from = Math.max(0, loc.col - 41);
+    const shown = lineText.slice(from, from + 80);
+    const caret = ' '.repeat(Math.max(0, loc.col - 1 - from)) + '^';
+    v.innerHTML = `<span class="where">Ligne ${loc.line}, colonne ${loc.col}</span> : ${esc(err)} <button class="btn small goto" type="button">Aller à la ligne ${loc.line}</button>
+      <pre class="snippet mono">${esc(from ? '…' + shown : shown)}\n${from ? ' ' : ''}${caret}</pre>`;
+    v.querySelector('.goto').onclick = () => goTo(loc);
     $('stats').textContent = '';
   }
 
@@ -123,7 +149,7 @@
     if (!text.trim()) { $('verdict').textContent = 'Colle du JSON pour commencer.'; $('verdict').className = 'verdict'; $('tree').innerHTML = ''; $('text').textContent = ''; $('stats').textContent = ''; hasParsed = false; return null; }
     const r = parse(text);
     if (r.ok) { show(r.value); return r.value; }
-    fail(r.error);
+    fail(r.error, r.loc);
     if (!quiet) status('Le bouton « Réparer » tolère quotes simples, virgules finales, commentaires et clés nues.', '');
     return null;
   }
@@ -136,7 +162,7 @@
     const fixed = repair($('input').value);
     const r = parse(fixed);
     if (r.ok) { $('input').value = JSON.stringify(r.value, null, indentValue()); show(r.value, 'Réparé et valide.'); status('Réparation réussie.', 'ok'); }
-    else { $('input').value = fixed; fail(r.error); status('Réparation partielle : il reste une erreur, voir ci-dessus.', 'err'); }
+    else { $('input').value = fixed; fail(r.error, r.loc); status('Réparation partielle : il reste une erreur, voir ci-dessus.', 'err'); }
   };
   $('unescape').onclick = () => {
     // A JSON string containing JSON (log lines, API bodies): unwrap one level.

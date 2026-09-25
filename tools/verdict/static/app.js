@@ -114,12 +114,13 @@
       return;
     }
     const det = r.stats.malicious + r.stats.suspicious;
-    const pct = r.total ? det / r.total : 0;
+    // Ring: share of engines that flagged it; a clean result fills the ring in green instead of showing nothing.
+    const pct = !r.total ? 0 : det ? Math.max(det / r.total, 0.03) : 1;
     const dash = 2 * Math.PI * 42;
     const title = r.type === 'file' ? (r.meta.names[0] || r.query) : r.type === 'url' ? (r.meta.title || r.query) : r.query;
     $('verdict').innerHTML = `
-      <div class="gauge"><svg viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="42"/><circle class="bar" cx="50" cy="50" r="42" stroke-dasharray="${dash}" stroke-dashoffset="${dash * (1 - Math.max(pct, det ? 0.02 : 0))}"/></svg>
-        <div class="num">${det}<small>/ ${r.total}</small></div></div>
+      <div class="gauge"><svg viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="42"/><circle class="bar" cx="50" cy="50" r="42" stroke-dasharray="${dash}" stroke-dashoffset="${dash * (1 - pct)}"/></svg>
+        <div class="num">${det}<small>sur ${r.total}</small></div></div>
       <div>
         <span class="type-badge">${TYPE[r.type]}</span>
         <h2><span class="label">${LABEL[lv]}</span>${esc(title)}</h2>

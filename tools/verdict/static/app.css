@@ -31,8 +31,11 @@
 .gauge .bar { stroke: var(--green); stroke-linecap: round; transition: stroke-dashoffset .5s; }
 .verdict.warn .gauge .bar { stroke: var(--amber); }
 .verdict.bad .gauge .bar { stroke: var(--red); }
-.gauge .num { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--font-mono); font-size: 18px; font-weight: 600; line-height: 1; text-align: center; }
-.gauge .num small { display: block; font-size: 10px; color: var(--text-dim); margin-top: 3px; }
+.gauge .num { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-family: var(--font-mono); font-size: 24px; font-weight: 600; line-height: 1; }
+.gauge .num small { font-size: 10px; font-weight: 500; color: var(--text-dim); letter-spacing: .02em; }
+.verdict.ok .gauge .num { color: var(--green); }
+.verdict.warn .gauge .num { color: var(--amber); }
+.verdict.bad .gauge .num { color: var(--red); }
 .verdict h2 { font-size: 18px; margin-bottom: 4px; }
 .verdict h2 .label { text-transform: uppercase; letter-spacing: .06em; font-size: 12px; margin-right: 8px; padding: 2px 8px; border-radius: 10px; background: var(--panel-2); }
 .verdict.ok h2 .label { color: var(--green); }
