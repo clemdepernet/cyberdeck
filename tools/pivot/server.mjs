@@ -44,6 +44,10 @@ async function write(map) {
   await fs.rename(tmp, file(map.id));
 }
 
+// The gate tags requests with X-Deck-Role: only the main account (or an open
+// deck, which sends nothing) may delete.
+const mayDelete = (req) => !['user', 'anon'].includes(req.headers['x-deck-role'] || '');
+
 export async function handle(req, res) {
   const url = new URL(req.url, 'http://x');
   const parts = url.pathname.replace(/^\/pivot\/api\/?/, '').split('/').filter(Boolean);
@@ -79,6 +83,7 @@ export async function handle(req, res) {
       return send(res, 200, { id: map.id, name: map.name, updatedAt: map.updatedAt });
     }
     if (req.method === 'DELETE' && id) {
+      if (!mayDelete(req)) return send(res, 403, { error: 'suppression réservée au compte principal' });
       try { await fs.unlink(file(id)); return send(res, 204, {}); }
       catch { return send(res, 404, { error: 'no map with this id' }); }
     }

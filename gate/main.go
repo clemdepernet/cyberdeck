@@ -104,6 +104,7 @@ func loadPublicTools(manifest string) []string {
 
 type Gate struct {
 	accounts       map[string]string // user -> password
+	admin          string            // the main account (APP_USER): full rights in the tools
 	secret         []byte
 	publicPrefixes []string
 	tmpl           *template.Template
@@ -111,12 +112,27 @@ type Gate struct {
 	fails          map[string][]time.Time
 }
 
-func newGate(accounts map[string]string, secret []byte, publicPrefixes []string) *Gate {
+func newGate(accounts map[string]string, admin string, secret []byte, publicPrefixes []string) *Gate {
 	t := template.Must(template.ParseFS(loginFS, "login.html"))
 	if accounts == nil {
 		accounts = map[string]string{}
 	}
-	return &Gate{accounts: accounts, secret: secret, publicPrefixes: publicPrefixes, tmpl: t, fails: map[string][]time.Time{}}
+	return &Gate{accounts: accounts, admin: admin, secret: secret, publicPrefixes: publicPrefixes, tmpl: t, fails: map[string][]time.Time{}}
+}
+
+// role is what the tools get: "admin" for the main account, "user" for the
+// others, "anon" for a visitor on a public tool, "" when the deck is open
+// (no login at all, so no distinction).
+func (g *Gate) role(user string) string {
+	switch {
+	case !g.enabled():
+		return ""
+	case user != "" && user == g.admin:
+		return "admin"
+	case user != "":
+		return "user"
+	}
+	return "anon"
 }
 
 // parseAccounts builds the account list from APP_USER/APP_PASSWORD plus
@@ -254,7 +270,11 @@ func safeNext(next string) string {
 // ---------------------------------------------------------------- handlers
 
 func (g *Gate) check(w http.ResponseWriter, r *http.Request) {
-	if !g.enabled() || g.public(r.Header.Get("X-Original-Method"), r.Header.Get("X-Original-URI")) || g.sessionOK(r) {
+	user := g.sessionUser(r)
+	if !g.enabled() || user != "" || g.public(r.Header.Get("X-Original-Method"), r.Header.Get("X-Original-URI")) {
+		// nginx copies these into X-Deck-User / X-Deck-Role for the tools.
+		w.Header().Set("X-Deck-User", user)
+		w.Header().Set("X-Deck-Role", g.role(user))
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -265,7 +285,7 @@ func (g *Gate) status(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
 	user := g.sessionUser(r)
-	json.NewEncoder(w).Encode(map[string]any{"auth": g.enabled(), "logged_in": !g.enabled() || user != "", "user": user, "public": g.publicPrefixes})
+	json.NewEncoder(w).Encode(map[string]any{"auth": g.enabled(), "logged_in": !g.enabled() || user != "", "user": user, "role": g.role(user), "public": g.publicPrefixes})
 }
 
 func wantsJSON(r *http.Request) bool {
@@ -374,7 +394,11 @@ func loadSecret(dataDir string) []byte {
 }
 
 func main() {
-	accounts := parseAccounts(os.Getenv("APP_USER"), os.Getenv("APP_PASSWORD"), os.Getenv("APP_USERS"))
+	admin := os.Getenv("APP_USER")
+	if admin == "" {
+		admin = "toolbox"
+	}
+	accounts := parseAccounts(admin, os.Getenv("APP_PASSWORD"), os.Getenv("APP_USERS"))
 	dataDir := os.Getenv("DATA_DIR")
 	if dataDir == "" {
 		dataDir = "./data"
@@ -387,7 +411,7 @@ func main() {
 	if manifest == "" {
 		manifest = "/app/shell/tools.json"
 	}
-	g := newGate(accounts, loadSecret(dataDir), loadPublicTools(manifest))
+	g := newGate(accounts, admin, loadSecret(dataDir), loadPublicTools(manifest))
 	log.Printf("gate: public tools: %v", g.publicPrefixes)
 	if g.enabled() {
 		names := make([]string, 0, len(accounts))

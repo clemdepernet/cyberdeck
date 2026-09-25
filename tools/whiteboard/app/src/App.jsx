@@ -50,6 +50,8 @@ function Board() {
   const [name, setName] = useState('');
   const [status, setStatus] = useState({ kind: 'idle', text: '' });
   const [initialData, setInitialData] = useState(null);
+  const [canDelete, setCanDelete] = useState(true);
+  useEffect(() => { fetch('/gate/status', { cache: 'no-store' }).then((r) => r.json()).then((s) => setCanDelete(!s.auth || s.role !== 'user')).catch(() => {}); }, []);
   const [theme, setTheme] = useState(() => { try { return localStorage.getItem('deck.wb.theme') || 'dark'; } catch { return 'dark'; } });
   const versionRef = useRef(0);   // scene version at last save
   const seenRef = useRef(0);      // scene version at last onChange we handled
@@ -202,7 +204,7 @@ function Board() {
       </select>
       <input className="deck-name" value={name} onChange={(e) => onRename(e.target.value)} placeholder={lang === 'fr-FR' ? 'Nom de la planche' : 'Board name'} />
       <button className="deck-btn" onClick={() => { clearTimeout(timerRef.current); save({ force: true }); }} title="Ctrl+S">{lang === 'fr-FR' ? 'Enregistrer' : 'Save'}</button>
-      {current && <button className="deck-btn danger" onClick={removeBoard}>{lang === 'fr-FR' ? 'Supprimer' : 'Delete'}</button>}
+      {current && canDelete && <button className="deck-btn danger" onClick={removeBoard}>{lang === 'fr-FR' ? 'Supprimer' : 'Delete'}</button>}
       <span className={`deck-status ${status.kind}`}>{status.text}</span>
     </div>
   );

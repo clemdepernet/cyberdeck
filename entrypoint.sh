@@ -24,6 +24,8 @@ chown deck:deck "$DATA_DIR/gate"
 if [ -n "${APP_PASSWORD:-}" ]; then
   cat > /etc/nginx/auth.conf <<CONF
 auth_request /gate/check;
+auth_request_set \$deck_user \$upstream_http_x_deck_user;
+auth_request_set \$deck_role \$upstream_http_x_deck_role;
 error_page 401 = @login;
 CONF
   echo "[cyberdeck] login required (user '${APP_USER:-toolbox}')"

@@ -508,6 +508,23 @@ func readSite(r *http.Request) (Site, error) {
 	return in, nil
 }
 
+// isAdmin: the gate tags requests with X-Deck-Role; an open deck (no login)
+// sends nothing, which counts as the owner. Other accounts may only add.
+func isAdmin(r *http.Request) bool {
+	role := r.Header.Get("X-Deck-Role")
+	return role == "" || role == "admin"
+}
+
+func adminOnly(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !isAdmin(r) {
+			fail(w, 403, "réservé au compte principal : les autres comptes peuvent seulement ajouter")
+			return
+		}
+		next(w, r)
+	}
+}
+
 func newServer(store *Store) *Server {
 	s := &Server{store: store, mux: http.NewServeMux()}
 	sub, _ := fs.Sub(staticFS, "static")
@@ -535,7 +552,7 @@ func newServer(store *Store) *Server {
 		}
 		writeJSON(w, 201, site)
 	})
-	s.mux.HandleFunc("PUT /bookmarks/api/sites/{id}", func(w http.ResponseWriter, r *http.Request) {
+	s.mux.HandleFunc("PUT /bookmarks/api/sites/{id}", adminOnly(func(w http.ResponseWriter, r *http.Request) {
 		in, err := readSite(r)
 		if err != nil {
 			fail(w, 400, err.Error())
@@ -551,14 +568,14 @@ func newServer(store *Store) *Server {
 			return
 		}
 		writeJSON(w, 200, site)
-	})
-	s.mux.HandleFunc("DELETE /bookmarks/api/sites/{id}", func(w http.ResponseWriter, r *http.Request) {
+	}))
+	s.mux.HandleFunc("DELETE /bookmarks/api/sites/{id}", adminOnly(func(w http.ResponseWriter, r *http.Request) {
 		if err := store.remove(r.PathValue("id")); err != nil {
 			fail(w, 404, "signet introuvable")
 			return
 		}
 		w.WriteHeader(204)
-	})
+	}))
 	s.mux.HandleFunc("POST /bookmarks/api/sites/bulk", func(w http.ResponseWriter, r *http.Request) {
 		var in struct {
 			Text string `json:"text"`
@@ -592,7 +609,7 @@ func newServer(store *Store) *Server {
 		}
 		writeJSON(w, 201, map[string]string{"name": name})
 	})
-	s.mux.HandleFunc("DELETE /bookmarks/api/families/{name}", func(w http.ResponseWriter, r *http.Request) {
+	s.mux.HandleFunc("DELETE /bookmarks/api/families/{name}", adminOnly(func(w http.ResponseWriter, r *http.Request) {
 		err := store.removeFamily(r.PathValue("name"))
 		if errors.Is(err, os.ErrNotExist) {
 			fail(w, 404, "famille introuvable")
@@ -603,15 +620,15 @@ func newServer(store *Store) *Server {
 			return
 		}
 		w.WriteHeader(204)
-	})
-	s.mux.HandleFunc("POST /bookmarks/api/families/rename", func(w http.ResponseWriter, r *http.Request) {
+	}))
+	s.mux.HandleFunc("POST /bookmarks/api/families/rename", adminOnly(func(w http.ResponseWriter, r *http.Request) {
 		var in struct{ From, To string }
 		if err := json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&in); err != nil || in.From == "" || strings.TrimSpace(in.To) == "" {
 			fail(w, 400, "corps JSON attendu {from, to}")
 			return
 		}
 		writeJSON(w, 200, map[string]int{"renamed": store.renameFamily(in.From, in.To)})
-	})
+	}))
 	s.mux.HandleFunc("GET /bookmarks/api/peek", func(w http.ResponseWriter, r *http.Request) {
 		info, err := peek(r.URL.Query().Get("url"))
 		if err != nil {

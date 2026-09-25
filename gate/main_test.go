@@ -12,7 +12,7 @@ import (
 )
 
 func TestPublicRules(t *testing.T) {
-	g := newGate(map[string]string{"clem": "pw"}, []byte("s"), []string{"/paste/", "/links/"})
+	g := newGate(map[string]string{"clem": "pw"}, "clem", []byte("s"), []string{"/paste/", "/links/"})
 	yes := []string{
 		"GET /", "GET /index.html", "GET /app.js", "GET /app.css", "GET /tools.json",
 		"GET /health", "GET /theme.css", "GET /favicon.svg", "GET /deck.js",
@@ -38,7 +38,7 @@ func TestPublicRules(t *testing.T) {
 		}
 	}
 	// Without the flag, only reading a paste stays open.
-	strict := newGate(map[string]string{"clem": "pw"}, []byte("s"), nil)
+	strict := newGate(map[string]string{"clem": "pw"}, "clem", []byte("s"), nil)
 	if !strict.public("GET", "/paste/api/pastes/K7X2M/raw") || strict.public("POST", "/paste/api/pastes") || strict.public("GET", "/links/") {
 		t.Error("built-in paste reading rules changed")
 	}
@@ -53,12 +53,34 @@ func TestAccounts(t *testing.T) {
 	if a["toolbox"] != "pw" || a["client"] != "secret" || a["eve"] != "e:v" || len(a) != 3 {
 		t.Fatalf("parsed %v", a)
 	}
-	g := newGate(a, []byte("s"), nil)
+	g := newGate(a, "toolbox", []byte("s"), nil)
 	if !g.credentialsOK("client", "secret") || !g.credentialsOK("toolbox", "pw") || g.credentialsOK("client", "pw") || g.credentialsOK("", "") {
 		t.Fatal("credential check across accounts is wrong")
 	}
 	if check(t, g, "GET", "/pivot/", "", [2]string{"client", "secret"}) != 200 {
 		t.Fatal("second account refused")
+	}
+	// roles travel with the check answer
+	role := func(basic [2]string) string {
+		req := httptest.NewRequest(http.MethodGet, "/gate/check", nil)
+		req.Header.Set("X-Original-Method", "GET")
+		req.Header.Set("X-Original-URI", "/paste/")
+		if basic[0] != "" {
+			req.SetBasicAuth(basic[0], basic[1])
+		}
+		rec := httptest.NewRecorder()
+		g.handler().ServeHTTP(rec, req)
+		return rec.Header().Get("X-Deck-User") + "/" + rec.Header().Get("X-Deck-Role")
+	}
+	if role([2]string{"toolbox", "pw"}) != "toolbox/admin" || role([2]string{"client", "secret"}) != "client/user" {
+		t.Fatalf("roles: %s %s", role([2]string{"toolbox", "pw"}), role([2]string{"client", "secret"}))
+	}
+	open := newGate(nil, "toolbox", []byte("s"), nil)
+	if open.role("") != "" || open.role("anyone") != "" {
+		t.Fatal("open deck must not assign roles")
+	}
+	if role([2]string{"", ""}) != "/anon" {
+		t.Fatalf("anonymous visitor on a public tool: %q", role([2]string{"", ""}))
 	}
 }
 
@@ -76,7 +98,7 @@ func TestLoadPublicTools(t *testing.T) {
 }
 
 func TestTokens(t *testing.T) {
-	g := newGate(map[string]string{"clem": "pw"}, []byte("secret"), nil)
+	g := newGate(map[string]string{"clem": "pw"}, "clem", []byte("secret"), nil)
 	tok := g.token("clem", time.Now().Add(time.Hour))
 	if !g.tokenOK(tok) {
 		t.Fatal("fresh token refused")
@@ -94,7 +116,7 @@ func TestTokens(t *testing.T) {
 	if g.tokenOK(g.token("ghost", time.Now().Add(time.Hour))) {
 		t.Fatal("token for an unknown account accepted")
 	}
-	other := newGate(map[string]string{"clem": "pw"}, []byte("other-secret"), nil)
+	other := newGate(map[string]string{"clem": "pw"}, "clem", []byte("other-secret"), nil)
 	if other.tokenOK(tok) {
 		t.Fatal("token accepted with another secret")
 	}
@@ -117,11 +139,11 @@ func check(t *testing.T, g *Gate, method, uri string, cookie string, basic [2]st
 }
 
 func TestCheck(t *testing.T) {
-	open := newGate(nil, []byte("s"), nil)
+	open := newGate(nil, "clem", []byte("s"), nil)
 	if check(t, open, "GET", "/", "", [2]string{}) != 200 {
 		t.Fatal("open deck must let everything through")
 	}
-	g := newGate(map[string]string{"clem": "pw"}, []byte("s"), nil)
+	g := newGate(map[string]string{"clem": "pw"}, "clem", []byte("s"), nil)
 	if check(t, g, "GET", "/pivot/", "", [2]string{}) != 401 {
 		t.Fatal("protected path without session must be 401")
 	}
@@ -143,7 +165,7 @@ func TestCheck(t *testing.T) {
 }
 
 func TestLoginFlow(t *testing.T) {
-	g := newGate(map[string]string{"clem": "pw"}, []byte("s"), nil)
+	g := newGate(map[string]string{"clem": "pw"}, "clem", []byte("s"), nil)
 	h := g.handler()
 	get := func(path string) *httptest.ResponseRecorder {
 		rec := httptest.NewRecorder()

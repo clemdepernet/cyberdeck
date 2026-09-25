@@ -130,6 +130,37 @@ func TestFamilies(t *testing.T) {
 	}
 }
 
+func TestOtherAccountsOnlyAdd(t *testing.T) {
+	s, store := testServer(t)
+	as := func(role, method, path string, body any) int {
+		var buf bytes.Buffer
+		if body != nil {
+			json.NewEncoder(&buf).Encode(body)
+		}
+		req := httptest.NewRequest(method, path, &buf)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Deck-Role", role)
+		rec := httptest.NewRecorder()
+		s.ServeHTTP(rec, req)
+		return rec.Code
+	}
+	id := store.sites[0].ID
+	if as("user", "POST", "/bookmarks/api/sites", map[string]string{"url": "https://example.net"}) != 201 {
+		t.Fatal("a user must be able to add a site")
+	}
+	if as("user", "POST", "/bookmarks/api/families", map[string]string{"name": "Perso"}) != 201 {
+		t.Fatal("a user must be able to add a family")
+	}
+	for _, c := range [][2]string{{"PUT", "/bookmarks/api/sites/" + id}, {"DELETE", "/bookmarks/api/sites/" + id}, {"DELETE", "/bookmarks/api/families/Perso"}, {"POST", "/bookmarks/api/families/rename"}} {
+		if code := as("user", c[0], c[1], map[string]string{"url": "https://x.y", "from": "Perso", "to": "Pro"}); code != 403 {
+			t.Fatalf("%s %s by a user: %d, want 403", c[0], c[1], code)
+		}
+	}
+	if as("admin", "DELETE", "/bookmarks/api/families/Perso", nil) != 204 || as("", "DELETE", "/bookmarks/api/sites/"+id, nil) != 204 {
+		t.Fatal("admin and open deck must keep full rights")
+	}
+}
+
 func TestBulk(t *testing.T) {
 	s, _ := testServer(t)
 	text := `# Dev

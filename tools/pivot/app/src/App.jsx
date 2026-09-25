@@ -65,6 +65,8 @@ function Editor() {
   const [search, setSearch] = useState('');
   const [showImport, setShowImport] = useState(false);
   const [busy, setBusy] = useState('');
+  const [canDelete, setCanDelete] = useState(true);
+  useEffect(() => { fetch('/gate/status', { cache: 'no-store' }).then((r) => r.json()).then((s) => setCanDelete(!s.auth || s.role !== 'user')).catch(() => {}); }, []);
   const wrapRef = useRef(null);
   const jsonRef = useRef(null);
   const timerRef = useRef(null);
@@ -360,7 +362,7 @@ function Editor() {
         </select>
         <input className="pv-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nom de la carte" />
         <button className="btn small primary" onClick={() => { clearTimeout(timerRef.current); save({ force: true }); }} title="Ctrl+S">Enregistrer</button>
-        {current && <button className="btn small danger" onClick={removeMap}>Supprimer</button>}
+        {current && canDelete && <button className="btn small danger" onClick={removeMap}>Supprimer</button>}
         <span className={`pv-status ${status.kind}`}>{status.text}</span>
         <span className="pv-spacer" />
         <input className="pv-search" type="search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rechercher (IP, port, service…)" />

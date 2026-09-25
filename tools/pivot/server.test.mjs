@@ -30,3 +30,11 @@ test('map lifecycle', async () => {
 });
 
 test.after(() => server.close());
+
+test('other accounts cannot delete', async () => {
+  const created = await json(base, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: 'x' }) });
+  const id = created.body.id;
+  assert.equal((await json(`${base}/${id}`, { method: 'DELETE', headers: { 'x-deck-role': 'user' } })).status, 403);
+  assert.equal((await json(`${base}/${id}`, { method: 'DELETE', headers: { 'x-deck-role': 'anon' } })).status, 403);
+  assert.equal((await json(`${base}/${id}`, { method: 'DELETE', headers: { 'x-deck-role': 'admin' } })).status, 204);
+});

@@ -86,7 +86,7 @@ func TestLimitAndValidation(t *testing.T) {
 func TestPersistence(t *testing.T) {
 	dir := t.TempDir()
 	store, _ := NewStore(dir, 10)
-	if _, err := store.Create("keep", "https://example.org", "titre"); err != nil {
+	if _, err := store.Create("keep", "https://example.org", "titre", ""); err != nil {
 		t.Fatal(err)
 	}
 	store.Resolve("keep")

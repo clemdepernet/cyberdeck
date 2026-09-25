@@ -44,6 +44,10 @@ async function writeBoard(board) {
   await fs.rename(tmp, file(board.id));
 }
 
+// The gate tags requests with X-Deck-Role: only the main account (or an open
+// deck, which sends nothing) may delete.
+const mayDelete = (req) => !['user', 'anon'].includes(req.headers['x-deck-role'] || '');
+
 export async function handle(req, res) {
   const url = new URL(req.url, 'http://x');
   const parts = url.pathname.replace(/^\/whiteboard\/api\/?/, '').split('/').filter(Boolean);
@@ -90,6 +94,7 @@ export async function handle(req, res) {
     }
 
     if (req.method === 'DELETE' && id) {
+      if (!mayDelete(req)) return send(res, 403, { error: 'suppression réservée au compte principal' });
       try { await fs.unlink(file(id)); return send(res, 204, {}); }
       catch { return send(res, 404, { error: 'no board with this id' }); }
     }

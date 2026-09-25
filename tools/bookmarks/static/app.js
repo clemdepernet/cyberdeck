@@ -9,6 +9,8 @@
   const PENCIL = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 2.5l2 2L6 12H4v-2z"/></svg>';
   let data = { sites: [], families: [] };
   let editing = null;
+  let admin = true;   // other accounts only add: no pencil, no delete, no rename
+  fetch('/gate/status', { cache: 'no-store' }).then((r) => r.json()).then((s) => { admin = !s.auth || s.role !== 'user'; render(); }).catch(() => {});
 
   async function call(url, init) {
     const r = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...init });
@@ -33,14 +35,14 @@
     $('families').innerHTML = [...byFam.entries()].map(([fam, list]) => `
       <section class="family" style="--accent:${colour(fam)}">
         <div class="family-head"><h2>${esc(fam)}</h2><span class="count">${list.length}</span>
-          <span class="tools"><button type="button" class="add-here" data-fam="${esc(fam)}">+ site</button><button type="button" class="rename" data-fam="${esc(fam)}">renommer</button>${list.length ? '' : `<button type="button" class="del" data-fam="${esc(fam)}">supprimer</button>`}</span></div>
+          <span class="tools"><button type="button" class="add-here" data-fam="${esc(fam)}">+ site</button>${admin ? `<button type="button" class="rename" data-fam="${esc(fam)}">renommer</button>${list.length ? '' : `<button type="button" class="del" data-fam="${esc(fam)}">supprimer</button>`}` : ''}</span></div>
         ${list.length ? `<div class="sites">${list.map(card).join('')}</div>` : `<p class="family-empty">Aucun site pour l'instant. <button type="button" class="add-here" data-fam="${esc(fam)}">Ajouter le premier</button></p>`}
       </section>`).join('') || `<p class="empty">${q ? 'Rien ne correspond.' : 'Aucun signet. Ajoute le premier.'}</p>`;
     $('families').querySelectorAll('.edit').forEach((b) => b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); openForm(data.sites.find((s) => s.id === b.dataset.id)); });
     $('families').querySelectorAll('.rename').forEach((b) => b.onclick = () => renameFamily(b.dataset.fam));
     $('families').querySelectorAll('.add-here').forEach((b) => b.onclick = () => { openForm(null); $('f-family').value = b.dataset.fam; $('f-url').focus(); });
     $('families').querySelectorAll('.del').forEach((b) => b.onclick = () => removeFamily(b.dataset.fam));
-    status(`${data.sites.length} signet${data.sites.length > 1 ? 's' : ''} · ${data.families.length} famille${data.families.length > 1 ? 's' : ''}`);
+    status(`${data.sites.length} site${data.sites.length > 1 ? 's' : ''} · ${data.families.length} famille${data.families.length > 1 ? 's' : ''}${admin ? '' : ' · ce compte peut ajouter, pas modifier'}`);
   }
 
   function card(s) {
@@ -52,7 +54,7 @@
       </div>
       <div class="site-desc">${esc(s.description)}</div>
       <div class="site-host">${esc(host)}</div>
-      <button class="edit" type="button" data-id="${esc(s.id)}" title="Modifier">${PENCIL}</button>
+      ${admin ? `<button class="edit" type="button" data-id="${esc(s.id)}" title="Modifier">${PENCIL}</button>` : ''}
     </a>`;
   }
   $('filter').addEventListener('input', render);

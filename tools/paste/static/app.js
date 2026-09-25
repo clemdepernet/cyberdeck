@@ -78,6 +78,7 @@
   }
   $('fetch-form').onsubmit = (e) => { e.preventDefault(); lookup($('lookup').value); };
   $('copy-content').onclick = () => copy($('found-content').textContent, 'Contenu');
+  fetch('/gate/status', { cache: 'no-store' }).then((r) => r.json()).then((s) => { if (s.auth && s.role !== 'admin') $('delete').hidden = true; }).catch(() => {});
   $('delete').onclick = async () => {
     const code = $('lookup').value.trim().toUpperCase();
     const r = await fetch(`${api}/${code}`, { method: 'DELETE' });

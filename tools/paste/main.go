@@ -377,7 +377,18 @@ func (s *Server) qr(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(png)
 }
 
+// mayDelete: the gate tags requests with X-Deck-Role; only the main account
+// (or an open deck, which sends nothing) may delete a drop.
+func mayDelete(r *http.Request) bool {
+	role := r.Header.Get("X-Deck-Role")
+	return role != "user" && role != "anon"
+}
+
 func (s *Server) remove(w http.ResponseWriter, r *http.Request) {
+	if !mayDelete(r) {
+		writeError(w, http.StatusForbidden, "suppression réservée au compte principal")
+		return
+	}
 	code := strings.ToUpper(r.PathValue("code"))
 	if !codeRe.MatchString(code) {
 		writeError(w, http.StatusBadRequest, "invalid code")

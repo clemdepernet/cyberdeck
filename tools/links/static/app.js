@@ -1,4 +1,13 @@
 (() => {
+  // What this account may do, as told by the gate (open deck: everything).
+  const role = { admin: true, create: true, note: '' };
+  fetch('/gate/status', { cache: 'no-store' }).then((r) => r.json()).then((s) => {
+    if (!s.auth) return;
+    role.admin = s.role === 'admin';
+    role.create = s.role !== 'anon';
+    role.note = s.role === 'anon' ? 'Connecte-toi pour créer un lien.' : s.role === 'user' ? 'Ce compte peut créer un lien par jour, sans en supprimer.' : '';
+    if (typeof load === 'function') load();
+  }).catch(() => {});
   const $ = (id) => document.getElementById(id);
   const api = '/links/api/links';
   const status = (m, k = '') => { $('status').textContent = m; $('status').className = 'status ' + k; };
@@ -10,8 +19,9 @@
     const d = await r.json();
     $('quota-n').textContent = d.used; $('quota-max').textContent = d.max;
     $('quota').classList.toggle('full', d.used >= d.max);
-    $('submit').disabled = d.used >= d.max;
-    $('submit').textContent = d.used >= d.max ? 'Limite atteinte' : 'Raccourcir';
+    $('submit').disabled = d.used >= d.max || !role.create;
+    $('submit').textContent = d.used >= d.max ? 'Limite atteinte' : !role.create ? 'Connexion requise' : 'Raccourcir';
+    if (role.note) status(role.note);
     $('empty').hidden = d.links.length > 0;
     $('list').innerHTML = d.links.map((l) => `
       <div class="link panel" data-slug="${esc(l.slug)}">
@@ -23,7 +33,7 @@
         </div>
         <div class="actions">
           <button class="btn small" data-copy="${esc(l.short)}">Copier</button>
-          <button class="btn small danger" data-del="${esc(l.slug)}">Supprimer</button>
+          ${role.admin ? `<button class="btn small danger" data-del="${esc(l.slug)}">Supprimer</button>` : ''}
         </div>
       </div>`).join('');
   }

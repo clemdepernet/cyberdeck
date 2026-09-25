@@ -37,6 +37,7 @@ type Link struct {
 	Clicks    int       `json:"clicks"`
 	CreatedAt time.Time `json:"created_at"`
 	LastClick time.Time `json:"last_click,omitempty"`
+	By        string    `json:"by,omitempty"` // account that created it, when the deck asks for a login
 }
 
 type Store struct {
@@ -117,7 +118,20 @@ func randomSlug() string {
 	return string(out)
 }
 
-func (s *Store) Create(slug, target, title string) (*Link, error) {
+// CreatedSince counts the links an account created in the given window.
+func (s *Store) CreatedSince(by string, window time.Duration) int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	n := 0
+	for _, l := range s.links {
+		if by != "" && l.By == by && time.Since(l.CreatedAt) < window {
+			n++
+		}
+	}
+	return n
+}
+
+func (s *Store) Create(slug, target, title, by string) (*Link, error) {
 	target, err := validateURL(target)
 	if err != nil {
 		return nil, err
@@ -144,7 +158,7 @@ func (s *Store) Create(slug, target, title string) (*Link, error) {
 			}
 		}
 	}
-	l := &Link{Slug: slug, URL: target, Title: strings.TrimSpace(title), CreatedAt: time.Now().UTC()}
+	l := &Link{Slug: slug, URL: target, Title: strings.TrimSpace(title), CreatedAt: time.Now().UTC(), By: by}
 	if len(l.Title) > 80 {
 		l.Title = l.Title[:80]
 	}
@@ -242,7 +256,18 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "JSON attendu : {url, slug?, title?}"})
 		return
 	}
-	l, err := s.store.Create(in.Slug, in.URL, in.Title)
+	user, role := r.Header.Get("X-Deck-User"), r.Header.Get("X-Deck-Role")
+	switch role {
+	case "anon":
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "connecte-toi pour créer un lien"})
+		return
+	case "user":
+		if s.store.CreatedSince(user, 24*time.Hour) >= 1 {
+			writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "un lien par jour pour ce compte : réessaie demain"})
+			return
+		}
+	}
+	l, err := s.store.Create(in.Slug, in.URL, in.Title, user)
 	if err != nil {
 		status := http.StatusBadRequest
 		switch err {
@@ -258,6 +283,10 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) remove(w http.ResponseWriter, r *http.Request) {
+	if role := r.Header.Get("X-Deck-Role"); role == "user" || role == "anon" {
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": "suppression réservée au compte principal"})
+		return
+	}
 	if err := s.store.Delete(r.PathValue("slug")); err != nil {
 		writeJSON(w, http.StatusNotFound, map[string]string{"error": err.Error()})
 		return
