@@ -107,3 +107,22 @@ body { height: 100vh; overflow: hidden; display: flex; }
   .rail .tab { grid-template-columns: 1fr; justify-items: center; padding-inline: 0; }
   .home { padding: 24px 16px; }
 }
+
+/* Gate: protected tools ask for a login in a modal; behind it the deck is blurred and inert. */
+body.locked .rail, body.locked .stage { filter: blur(5px); pointer-events: none; user-select: none; }
+.gate { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px; background: rgba(21, 23, 27, .45); backdrop-filter: blur(3px); }
+.gate[hidden] { display: none; }
+.gate-card { width: min(380px, 100%); padding: 24px 24px 20px; display: grid; gap: 12px; box-shadow: var(--shadow); }
+.gate-brand { display: flex; align-items: center; gap: 10px; color: var(--amber); font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
+.gate-brand svg { width: 28px; height: 28px; }
+.gate-lead { color: var(--text-muted); font-size: 13px; }
+.gate-card label { display: grid; gap: 5px; font-size: 12px; }
+.gate-card input { width: 100%; }
+.gate-err { color: var(--red); font-size: 13px; min-height: 18px; margin: 0; }
+.gate-actions { display: flex; gap: 8px; }
+.gate-actions .btn.primary { flex: 1; justify-content: center; }
+.tab-key.lock, .card-lock { display: inline-flex; color: var(--text-dim); }
+.tab-key.lock { border: 0; background: none; }
+.tab-key.lock svg, .card-lock svg { width: 13px; height: 13px; }
+.card-lock { margin-left: auto; }
+.rail.collapsed .tab-key.lock { display: none; }

@@ -44,7 +44,10 @@ var (
 
 // public says whether a request may pass without a session. Kept in one place
 // so the rule is readable and tested: nginx only forwards method and URI.
-func public(method, uri string) bool {
+//
+// Open to everyone: the shell itself (home page and manifest), the tools
+// flagged "public" in their tool.json, short links, reading a paste, health.
+func (g *Gate) public(method, uri string) bool {
 	path := uri
 	if i := strings.IndexAny(path, "?#"); i >= 0 {
 		path = path[:i]
@@ -53,27 +56,64 @@ func public(method, uri string) bool {
 	case "/login", "/logout", "/gate/status":
 		return true
 	}
+	for _, prefix := range g.publicPrefixes {
+		if strings.HasPrefix(path, prefix) {
+			return true
+		}
+	}
 	if method != http.MethodGet && method != http.MethodHead {
 		return false
 	}
 	switch path {
-	case "/health", "/theme.css", "/deck.js", "/favicon.svg", "/paste/", "/paste/index.html", "/paste/app.js", "/paste/app.css":
+	case "/", "/index.html", "/app.js", "/app.css", "/tools.json", "/health", "/theme.css", "/deck.js", "/favicon.svg",
+		"/paste/", "/paste/index.html", "/paste/app.js", "/paste/app.css":
 		return true
 	}
 	return shortLink.MatchString(path) || pasteCode.MatchString(path) || pasteRead.MatchString(path)
 }
 
+// loadPublicTools reads the shell manifest and returns the paths of the tools
+// flagged "public": true in their tool.json (e.g. /paste/, /links/).
+func loadPublicTools(manifest string) []string {
+	raw, err := os.ReadFile(manifest)
+	if err != nil {
+		log.Printf("gate: no manifest at %s (%v): only the built-in public paths apply", manifest, err)
+		return nil
+	}
+	var tools []struct {
+		ID     string `json:"id"`
+		Path   string `json:"path"`
+		Public bool   `json:"public"`
+	}
+	if err := json.Unmarshal(raw, &tools); err != nil {
+		log.Printf("gate: unreadable manifest %s: %v", manifest, err)
+		return nil
+	}
+	var out []string
+	for _, t := range tools {
+		if t.Public && strings.HasPrefix(t.Path, "/") && len(t.Path) > 1 {
+			p := t.Path
+			if !strings.HasSuffix(p, "/") {
+				p += "/"
+			}
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
 type Gate struct {
 	user, password string
 	secret         []byte
+	publicPrefixes []string
 	tmpl           *template.Template
 	mu             sync.Mutex
 	fails          map[string][]time.Time
 }
 
-func newGate(user, password string, secret []byte) *Gate {
+func newGate(user, password string, secret []byte, publicPrefixes []string) *Gate {
 	t := template.Must(template.ParseFS(loginFS, "login.html"))
-	return &Gate{user: user, password: password, secret: secret, tmpl: t, fails: map[string][]time.Time{}}
+	return &Gate{user: user, password: password, secret: secret, publicPrefixes: publicPrefixes, tmpl: t, fails: map[string][]time.Time{}}
 }
 
 func (g *Gate) enabled() bool { return g.password != "" }
@@ -162,7 +202,7 @@ func safeNext(next string) string {
 // ---------------------------------------------------------------- handlers
 
 func (g *Gate) check(w http.ResponseWriter, r *http.Request) {
-	if !g.enabled() || public(r.Header.Get("X-Original-Method"), r.Header.Get("X-Original-URI")) || g.sessionOK(r) {
+	if !g.enabled() || g.public(r.Header.Get("X-Original-Method"), r.Header.Get("X-Original-URI")) || g.sessionOK(r) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -172,12 +212,27 @@ func (g *Gate) check(w http.ResponseWriter, r *http.Request) {
 func (g *Gate) status(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
-	json.NewEncoder(w).Encode(map[string]any{"auth": g.enabled(), "logged_in": !g.enabled() || g.sessionOK(r), "user": g.user})
+	json.NewEncoder(w).Encode(map[string]any{"auth": g.enabled(), "logged_in": !g.enabled() || g.sessionOK(r), "user": g.user, "public": g.publicPrefixes})
 }
 
-func (g *Gate) render(w http.ResponseWriter, status int, next, errMsg string) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+func wantsJSON(r *http.Request) bool {
+	return strings.Contains(r.Header.Get("Accept"), "application/json")
+}
+
+// render answers the standalone page, or JSON when the shell's modal asks.
+func (g *Gate) render(w http.ResponseWriter, r *http.Request, status int, next, errMsg string) {
 	w.Header().Set("Cache-Control", "no-store")
+	if wantsJSON(r) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		if errMsg != "" {
+			json.NewEncoder(w).Encode(map[string]string{"error": errMsg})
+		} else {
+			json.NewEncoder(w).Encode(map[string]any{"ok": true, "user": g.user})
+		}
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
 	g.tmpl.Execute(w, map[string]string{"Next": next, "Error": errMsg})
 }
@@ -194,26 +249,30 @@ func (g *Gate) login(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, next, http.StatusFound)
 			return
 		}
-		g.render(w, http.StatusOK, next, "")
+		g.render(w, r, http.StatusOK, next, "")
 	case http.MethodPost:
 		if err := r.ParseForm(); err != nil {
-			g.render(w, http.StatusBadRequest, "/", "formulaire illisible")
+			g.render(w, r, http.StatusBadRequest, "/", "formulaire illisible")
 			return
 		}
 		next := safeNext(r.PostFormValue("next"))
 		ip := clientIP(r)
 		if g.tooManyFails(ip) {
-			g.render(w, http.StatusTooManyRequests, next, "Trop d'essais. Attends une minute.")
+			g.render(w, r, http.StatusTooManyRequests, next, "Trop d'essais. Attends une minute.")
 			return
 		}
 		if !g.credentialsOK(r.PostFormValue("user"), r.PostFormValue("password")) {
 			g.noteFail(ip)
 			log.Printf("gate: refused login from %s", ip)
-			g.render(w, http.StatusUnauthorized, next, "Identifiant ou mot de passe incorrect.")
+			g.render(w, r, http.StatusUnauthorized, next, "Identifiant ou mot de passe incorrect.")
 			return
 		}
 		http.SetCookie(w, &http.Cookie{Name: cookieName, Value: g.token(time.Now().Add(sessionTTL)), Path: "/", HttpOnly: true, Secure: secure(r), SameSite: http.SameSiteLaxMode, MaxAge: int(sessionTTL.Seconds())})
 		log.Printf("gate: login from %s", ip)
+		if wantsJSON(r) {
+			g.render(w, r, http.StatusOK, next, "")
+			return
+		}
 		http.Redirect(w, r, next, http.StatusSeeOther)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -274,7 +333,12 @@ func main() {
 	if port == "" {
 		port = "8100"
 	}
-	g := newGate(user, password, loadSecret(dataDir))
+	manifest := os.Getenv("TOOLS_MANIFEST")
+	if manifest == "" {
+		manifest = "/app/shell/tools.json"
+	}
+	g := newGate(user, password, loadSecret(dataDir), loadPublicTools(manifest))
+	log.Printf("gate: public tools: %v", g.publicPrefixes)
 	if g.enabled() {
 		log.Printf("gate: login required (user %q), listening on %s", user, port)
 	} else {

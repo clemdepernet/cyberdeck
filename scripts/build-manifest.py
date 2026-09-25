@@ -2,7 +2,8 @@
 """Collects tools/*/tool.json into shell/tools.json (sorted by `order`, then name).
 
 Run at image build time; the shell reads the result to draw its tabs.
-Each manifest must provide: id, name, path. Optional: tagline, tech, icon, order.
+Each manifest must provide: id, name, path. Optional: tagline, tech, icon, order,
+public (true = usable without logging in when APP_PASSWORD is set), hidden.
 """
 import json
 import pathlib
@@ -28,6 +29,7 @@ for manifest in sorted((root / "tools").glob("*/tool.json")):
         "icon": data.get("icon", "tool"),
         "path": data["path"],
         "order": data.get("order", 100),
+        "public": bool(data.get("public", False)),
     })
 
 tools.sort(key=lambda t: (t["order"], t["name"].lower()))

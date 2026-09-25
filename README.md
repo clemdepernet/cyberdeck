@@ -30,7 +30,7 @@ Ou avec le `docker-compose.yml` fourni. L'image est multi-arch (amd64, arm64 : e
 | Variable | Défaut | Rôle |
 | --- | --- | --- |
 | `PUBLIC_URL` | déduit de la requête | URL publique, utilisée dans les liens et QR codes des pastes |
-| `APP_PASSWORD` | vide (ouvert) | Met le deck derrière une page de connexion (identifiant `APP_USER`, `toolbox` par défaut) : cookie de session de 30 jours, `curl -u` accepté pour les scripts. Restent publics : les liens courts `/s/…`, la lecture d'un paste (`/p/CODE`, page et API en lecture) et `/health` ; créer un paste ou un lien demande d'être connecté |
+| `APP_PASSWORD` | vide (ouvert) | Demande une connexion (identifiant `APP_USER`, `toolbox` par défaut) pour les outils protégés : l'accueil et les outils marqués `"public": true` dans leur `tool.json` (Copy-paste, Liens courts) restent utilisables par tout le monde, les autres ouvrent une fenêtre de connexion sur fond flouté. Cookie de session de 30 jours, `curl -u` accepté pour les scripts, `/s/…`, `/p/CODE` et `/health` toujours ouverts |
 | `PUID` / `PGID` | 1000 | Propriétaire de `/data` |
 | `TZ` | UTC | Fuseau horaire des logs |
 | `MAX_LINKS` | 10 | Nombre maximal de liens courts |
@@ -39,7 +39,7 @@ Ou avec le `docker-compose.yml` fourni. L'image est multi-arch (amd64, arm64 : e
 
 `/data` contient un sous-dossier par outil (`whiteboard/`, `pivot/`, `paste/`…). Rien d'autre à sauvegarder.
 
-Le deck est pensé pour être exposé derrière un reverse proxy ou un tunnel Cloudflare. La connexion est gérée par `gate/` (Go, `auth_request` nginx) et ses règles de chemins publics sont testées dans `gate/main_test.go`. Sans `APP_PASSWORD`, tout le monde peut créer des pastes : le service Go limite le débit par IP (création et lecture) et les codes sont tirés dans un alphabet de 31 caractères sur 5 positions.
+Le deck est pensé pour être exposé derrière un reverse proxy ou un tunnel Cloudflare. La connexion est gérée par `gate/` (Go, `auth_request` nginx) : il lit les outils publics dans le manifeste et ses règles sont testées dans `gate/main_test.go`. Sans `APP_PASSWORD`, tout le monde peut créer des pastes : le service Go limite le débit par IP (création et lecture) et les codes sont tirés dans un alphabet de 31 caractères sur 5 positions.
 
 ## Raccourcis
 
