@@ -27,15 +27,19 @@
     const q = $('filter').value.trim().toLowerCase();
     const sites = data.sites.filter((s) => !q || `${s.name} ${s.description} ${hostOf(s.url)} ${s.family}`.toLowerCase().includes(q));
     const byFam = new Map();
+    if (!q) for (const f of data.families) byFam.set(f, []);   // empty families show up unless filtering
     for (const s of sites) { if (!byFam.has(s.family)) byFam.set(s.family, []); byFam.get(s.family).push(s); }
     $('family-list').innerHTML = data.families.map((f) => `<option value="${esc(f)}">`).join('');
     $('families').innerHTML = [...byFam.entries()].map(([fam, list]) => `
       <section class="family" style="--accent:${colour(fam)}">
-        <div class="family-head"><h2>${esc(fam)}</h2><span class="count">${list.length}</span><button class="rename" data-fam="${esc(fam)}" type="button">renommer</button></div>
-        <div class="sites">${list.map(card).join('')}</div>
+        <div class="family-head"><h2>${esc(fam)}</h2><span class="count">${list.length}</span>
+          <span class="tools"><button type="button" class="add-here" data-fam="${esc(fam)}">+ site</button><button type="button" class="rename" data-fam="${esc(fam)}">renommer</button>${list.length ? '' : `<button type="button" class="del" data-fam="${esc(fam)}">supprimer</button>`}</span></div>
+        ${list.length ? `<div class="sites">${list.map(card).join('')}</div>` : `<p class="family-empty">Aucun site pour l'instant. <button type="button" class="add-here" data-fam="${esc(fam)}">Ajouter le premier</button></p>`}
       </section>`).join('') || `<p class="empty">${q ? 'Rien ne correspond.' : 'Aucun signet. Ajoute le premier.'}</p>`;
     $('families').querySelectorAll('.edit').forEach((b) => b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); openForm(data.sites.find((s) => s.id === b.dataset.id)); });
     $('families').querySelectorAll('.rename').forEach((b) => b.onclick = () => renameFamily(b.dataset.fam));
+    $('families').querySelectorAll('.add-here').forEach((b) => b.onclick = () => { openForm(null); $('f-family').value = b.dataset.fam; $('f-url').focus(); });
+    $('families').querySelectorAll('.del').forEach((b) => b.onclick = () => removeFamily(b.dataset.fam));
     status(`${data.sites.length} signet${data.sites.length > 1 ? 's' : ''} · ${data.families.length} famille${data.families.length > 1 ? 's' : ''}`);
   }
 
@@ -114,6 +118,19 @@
     try { await call(`${api}/families/rename`, { method: 'POST', body: JSON.stringify({ from, to: to.trim() }) }); await load(); }
     catch (e) { status(e.message, 'err'); }
   }
+
+  async function addFamily() {
+    const name = prompt('Nom de la nouvelle famille :');
+    if (!name || !name.trim()) return;
+    try { await call(`${api}/families`, { method: 'POST', body: JSON.stringify({ name: name.trim() }) }); await load(); }
+    catch (e) { status(e.message, 'err'); }
+  }
+  async function removeFamily(name) {
+    if (!confirm(`Supprimer la famille vide « ${name} » ?`)) return;
+    try { await call(`${api}/families/${encodeURIComponent(name)}`, { method: 'DELETE' }); await load(); }
+    catch (e) { status(e.message, 'err'); }
+  }
+  $('family-btn').onclick = addFamily;
 
   // ---- bulk ----
   $('bulk-btn').onclick = () => { $('bulk-status').textContent = ''; $('bulk-modal').hidden = false; $('bulk-text').focus(); };

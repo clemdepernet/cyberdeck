@@ -57,7 +57,7 @@ func TestCRUD(t *testing.T) {
 	}
 	var site Site
 	json.Unmarshal(rec.Body.Bytes(), &site)
-	if site.URL != "https://hashes.com/en/decrypt/hash" || site.Name != "hashes.com" || site.Family != "cracking" {
+	if site.URL != "https://hashes.com/en/decrypt/hash" || site.Name != "hashes.com" || site.Family != "Cracking" { // existing spelling reused
 		t.Fatalf("normalised: %+v", site)
 	}
 	if rec := do(t, s, "POST", "/bookmarks/api/sites", map[string]string{"url": "https://hashes.com/en/decrypt/hash/"}); rec.Code != 409 {
@@ -77,7 +77,7 @@ func TestCRUD(t *testing.T) {
 	if rec := do(t, s, "PUT", "/bookmarks/api/sites/nope", map[string]string{"url": "https://a.b"}); rec.Code != 404 {
 		t.Fatal("update of unknown id must be 404")
 	}
-	if n := store.renameFamily("cracking", "Mots de passe"); n != 2 {
+	if n := store.renameFamily("cracking", "Mots de passe"); n != 3 { // 2 sites + the kept family entry
 		t.Fatalf("rename touched %d", n)
 	}
 	if rec := do(t, s, "DELETE", "/bookmarks/api/sites/"+site.ID, nil); rec.Code != 204 {
@@ -86,10 +86,47 @@ func TestCRUD(t *testing.T) {
 	if rec := do(t, s, "DELETE", "/bookmarks/api/sites/"+site.ID, nil); rec.Code != 404 {
 		t.Fatal("second delete must be 404")
 	}
-	// persisted: a fresh store reads the same file
+	// persisted: a fresh store reads the same files, the emptied family survives
 	again, err := openStore(store.path[:len(store.path)-len("/sites.json")])
 	if err != nil || len(again.sites) != 6 {
 		t.Fatalf("reload: %v, %d sites", err, len(again.sites))
+	}
+	if _, fams := again.list(); !strings.Contains(strings.Join(fams, ","), "Mots de passe") {
+		t.Fatalf("emptied family lost: %v", fams)
+	}
+}
+
+func TestFamilies(t *testing.T) {
+	s, store := testServer(t)
+	if rec := do(t, s, "POST", "/bookmarks/api/families", map[string]string{"name": "  Veille  "}); rec.Code != 201 || !strings.Contains(rec.Body.String(), `"Veille"`) {
+		t.Fatalf("create family: %d %s", rec.Code, rec.Body.String())
+	}
+	if rec := do(t, s, "POST", "/bookmarks/api/families", map[string]string{"name": "veille"}); rec.Code != 409 {
+		t.Fatal("duplicate family (case-insensitive) must be 409")
+	}
+	if rec := do(t, s, "POST", "/bookmarks/api/families", map[string]string{"name": "devops"}); rec.Code != 409 {
+		t.Fatal("family already used by sites must be 409")
+	}
+	_, fams := store.list()
+	if !strings.Contains(strings.Join(fams, ","), "Veille") {
+		t.Fatalf("empty family not listed: %v", fams)
+	}
+	// a site typed in lowercase joins the existing family spelling
+	rec := do(t, s, "POST", "/bookmarks/api/sites", map[string]string{"url": "https://feedly.com", "family": "veille"})
+	var site Site
+	json.Unmarshal(rec.Body.Bytes(), &site)
+	if site.Family != "Veille" {
+		t.Fatalf("family spelling not reused: %q", site.Family)
+	}
+	if rec := do(t, s, "DELETE", "/bookmarks/api/families/Veille", nil); rec.Code != 409 {
+		t.Fatal("a family with sites must not be deletable")
+	}
+	do(t, s, "DELETE", "/bookmarks/api/sites/"+site.ID, nil)
+	if rec := do(t, s, "DELETE", "/bookmarks/api/families/veille", nil); rec.Code != 204 {
+		t.Fatalf("delete empty family: %d", rec.Code)
+	}
+	if rec := do(t, s, "DELETE", "/bookmarks/api/families/veille", nil); rec.Code != 404 {
+		t.Fatal("second delete must be 404")
 	}
 }
 

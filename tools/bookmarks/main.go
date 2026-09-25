@@ -51,9 +51,11 @@ type Site struct {
 }
 
 type Store struct {
-	mu    sync.Mutex
-	path  string
-	sites []Site
+	mu       sync.Mutex
+	path     string // sites.json
+	famPath  string // families.json: families kept even when empty
+	sites    []Site
+	families []string
 }
 
 func newID() string {
@@ -66,7 +68,10 @@ func openStore(dir string) (*Store, error) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, err
 	}
-	s := &Store{path: filepath.Join(dir, "sites.json")}
+	s := &Store{path: filepath.Join(dir, "sites.json"), famPath: filepath.Join(dir, "families.json")}
+	if raw, err := os.ReadFile(s.famPath); err == nil {
+		json.Unmarshal(raw, &s.families)
+	}
 	raw, err := os.ReadFile(s.path)
 	switch {
 	case err == nil:
@@ -84,25 +89,63 @@ func openStore(dir string) (*Store, error) {
 			seeds[i].ID, seeds[i].CreatedAt, seeds[i].UpdatedAt = newID(), now, now
 		}
 		s.sites = seeds
+		for _, x := range seeds {
+			s.keepFamily(x.Family)
+		}
 		if err := s.save(); err != nil {
 			return nil, err
 		}
 	default:
 		return nil, err
 	}
+	// Families that only exist through their sites are adopted once, so
+	// emptying one later does not make it vanish.
+	adopted := false
+	for _, x := range s.sites {
+		if s.keepFamily(x.Family) {
+			adopted = true
+		}
+	}
+	if adopted {
+		if err := s.save(); err != nil {
+			return nil, err
+		}
+	}
 	return s, nil
 }
 
-func (s *Store) save() error {
-	raw, err := json.MarshalIndent(s.sites, "", "  ")
+func writeAtomic(path string, v any) error {
+	raw, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		return err
 	}
-	tmp := s.path + ".tmp"
+	tmp := path + ".tmp"
 	if err := os.WriteFile(tmp, raw, 0o644); err != nil {
 		return err
 	}
-	return os.Rename(tmp, s.path)
+	return os.Rename(tmp, path)
+}
+
+func (s *Store) save() error {
+	if err := writeAtomic(s.famPath, s.families); err != nil {
+		return err
+	}
+	return writeAtomic(s.path, s.sites)
+}
+
+// keepFamily records a family name so it survives with no site in it.
+func (s *Store) keepFamily(name string) bool {
+	name = clip(name, maxFam)
+	if name == "" {
+		return false
+	}
+	for _, f := range s.families {
+		if strings.EqualFold(f, name) {
+			return false
+		}
+	}
+	s.families = append(s.families, name)
+	return true
 }
 
 // ---------------------------------------------------------------- validation
@@ -171,12 +214,62 @@ func (s *Store) list() ([]Site, []string) {
 	seen := map[string]bool{}
 	var fams []string
 	for _, x := range out {
-		if !seen[x.Family] {
-			seen[x.Family] = true
+		if !seen[strings.ToLower(x.Family)] {
+			seen[strings.ToLower(x.Family)] = true
 			fams = append(fams, x.Family)
 		}
 	}
+	for _, f := range s.families {
+		if !seen[strings.ToLower(f)] {
+			seen[strings.ToLower(f)] = true
+			fams = append(fams, f)
+		}
+	}
+	sort.Slice(fams, func(i, j int) bool { return strings.ToLower(fams[i]) < strings.ToLower(fams[j]) })
 	return out, fams
+}
+
+func (s *Store) addFamily(name string) (string, error) {
+	name = clip(name, maxFam)
+	if name == "" {
+		return "", errors.New("nom de famille manquant")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, x := range s.sites {
+		if strings.EqualFold(x.Family, name) {
+			return x.Family, errors.New("cette famille existe déjà")
+		}
+	}
+	if !s.keepFamily(name) {
+		return name, errors.New("cette famille existe déjà")
+	}
+	return name, s.save()
+}
+
+// removeFamily only drops an empty family; sites are never deleted this way.
+func (s *Store) removeFamily(name string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, x := range s.sites {
+		if strings.EqualFold(x.Family, name) {
+			return errors.New("la famille contient encore des sites")
+		}
+	}
+	kept := s.families[:0]
+	found := false
+	for _, f := range s.families {
+		if strings.EqualFold(f, name) {
+			found = true
+			continue
+		}
+		kept = append(kept, f)
+	}
+	s.families = kept
+	if !found {
+		return os.ErrNotExist
+	}
+	return s.save()
 }
 
 func (s *Store) add(in Site) (Site, error) {
@@ -193,8 +286,25 @@ func (s *Store) add(in Site) (Site, error) {
 	}
 	now := time.Now().UTC()
 	site.ID, site.CreatedAt, site.UpdatedAt = newID(), now, now
+	site.Family = s.canonicalFamily(site.Family)
 	s.sites = append(s.sites, site)
+	s.keepFamily(site.Family)
 	return site, s.save()
+}
+
+// canonicalFamily reuses the existing spelling of a family ("devops" -> "DevOps").
+func (s *Store) canonicalFamily(name string) string {
+	for _, f := range s.families {
+		if strings.EqualFold(f, name) {
+			return f
+		}
+	}
+	for _, x := range s.sites {
+		if strings.EqualFold(x.Family, name) {
+			return x.Family
+		}
+	}
+	return name
 }
 
 func (s *Store) update(id string, in Site) (Site, error) {
@@ -207,7 +317,9 @@ func (s *Store) update(id string, in Site) (Site, error) {
 	for i, x := range s.sites {
 		if x.ID == id {
 			site.ID, site.CreatedAt, site.UpdatedAt = x.ID, x.CreatedAt, time.Now().UTC()
+			site.Family = s.canonicalFamily(site.Family)
 			s.sites[i] = site
+			s.keepFamily(site.Family)
 			return site, s.save()
 		}
 	}
@@ -234,6 +346,12 @@ func (s *Store) renameFamily(from, to string) int {
 	for i := range s.sites {
 		if strings.EqualFold(s.sites[i].Family, from) && to != "" {
 			s.sites[i].Family = to
+			n++
+		}
+	}
+	for i := range s.families {
+		if strings.EqualFold(s.families[i], from) && to != "" {
+			s.families[i] = to
 			n++
 		}
 	}
@@ -460,6 +578,31 @@ func newServer(store *Store) *Server {
 			added = append(added, created)
 		}
 		writeJSON(w, 200, map[string]any{"added": added, "errors": errs})
+	})
+	s.mux.HandleFunc("POST /bookmarks/api/families", func(w http.ResponseWriter, r *http.Request) {
+		var in struct{ Name string }
+		if err := json.NewDecoder(io.LimitReader(r.Body, 4096)).Decode(&in); err != nil {
+			fail(w, 400, "corps JSON attendu {name}")
+			return
+		}
+		name, err := store.addFamily(in.Name)
+		if err != nil {
+			fail(w, 409, err.Error())
+			return
+		}
+		writeJSON(w, 201, map[string]string{"name": name})
+	})
+	s.mux.HandleFunc("DELETE /bookmarks/api/families/{name}", func(w http.ResponseWriter, r *http.Request) {
+		err := store.removeFamily(r.PathValue("name"))
+		if errors.Is(err, os.ErrNotExist) {
+			fail(w, 404, "famille introuvable")
+			return
+		}
+		if err != nil {
+			fail(w, 409, err.Error())
+			return
+		}
+		w.WriteHeader(204)
 	})
 	s.mux.HandleFunc("POST /bookmarks/api/families/rename", func(w http.ResponseWriter, r *http.Request) {
 		var in struct{ From, To string }
