@@ -34,6 +34,7 @@
       const r = await fetch(api, { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content, ttl: $('ttl').value, burn: $('burn').checked }) });
       const out = await r.json();
+      if (r.status === 401) throw new Error('connexion requise pour créer un paste : ouvre /login sur cette machine');
       if (!r.ok) throw new Error(out.error || r.statusText);
       last = out;
       $('code').textContent = out.code;

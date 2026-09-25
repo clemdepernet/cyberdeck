@@ -19,6 +19,14 @@
   let tools = [];
   let current = null;
 
+  // Logout link only when the gate actually asks for a password.
+  fetch('/gate/status').then((r) => r.json()).then((s) => {
+    if (!s.auth) return;
+    const b = document.getElementById('logout');
+    b.hidden = false;
+    b.onclick = () => fetch('/logout', { method: 'POST' }).finally(() => { location.href = '/login'; });
+  }).catch(() => {});
+
   const iconFor = (t) => (t.icon && t.icon.trim().startsWith('<svg')) ? t.icon : (ICONS[t.icon] || ICONS.tool);
 
   function render() {

@@ -16,17 +16,17 @@ for d in /app/tools/*/; do
 done
 chown -R deck:deck "$DATA_DIR"
 
-# Optional shared password (same idea as APP_PASSWORD elsewhere in the homelab).
+mkdir -p "$DATA_DIR/gate"
+chown deck:deck "$DATA_DIR/gate"
+
+# Optional login: APP_PASSWORD (+ APP_USER, default toolbox) puts the whole deck
+# behind the gate's login page; short links and paste reading stay public.
 if [ -n "${APP_PASSWORD:-}" ]; then
-  user="${APP_USER:-toolbox}"
-  hash="$(openssl passwd -apr1 "$APP_PASSWORD")"
-  printf '%s:%s\n' "$user" "$hash" > /etc/nginx/.htpasswd
-  chmod 640 /etc/nginx/.htpasswd
   cat > /etc/nginx/auth.conf <<CONF
-auth_basic "Cyberdeck";
-auth_basic_user_file /etc/nginx/.htpasswd;
+auth_request /gate/check;
+error_page 401 = @login;
 CONF
-  echo "[cyberdeck] basic auth enabled for user '$user'"
+  echo "[cyberdeck] login required (user '${APP_USER:-toolbox}')"
 else
   : > /etc/nginx/auth.conf
   echo "[cyberdeck] no APP_PASSWORD set: the deck is open to anyone who can reach it"

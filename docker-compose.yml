@@ -15,5 +15,6 @@ services:
       - PUBLIC_URL=https://toolbox.example.com   # used in paste links and QR codes
       # - HIBP_API_KEY=${HIBP_API_KEY}            # optional: e-mail lookups in Fuites
       # - VT_API_KEY=${VT_API_KEY}                # optional: VirusTotal reports in Verdict
-      # - APP_PASSWORD=change-me                  # optional: basic auth on the whole deck (user: toolbox)
+      # - APP_USER=me                             # optional: login name (default toolbox)
+      # - APP_PASSWORD=change-me                  # optional: login page in front of the deck; short links and paste reading stay public
     restart: unless-stopped

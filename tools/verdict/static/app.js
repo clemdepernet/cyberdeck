@@ -126,6 +126,10 @@
         ${title !== r.query ? `<div class="q">${esc(r.query)}</div>` : ''}
         <div class="line">${det ? `${det} moteur${det > 1 ? 's' : ''} sur ${r.total} signale${det > 1 ? 'nt' : ''} cet élément` : `aucun des ${r.total} moteurs ne signale cet élément`}${r.meta.threat_label ? ` · classification <strong>${esc(r.meta.threat_label)}</strong>` : ''} · dernière analyse ${when(r.last_analysis)}</div>
         <div class="line">Réputation communautaire ${r.reputation ?? 0} · votes : ${r.votes.malicious} malveillant, ${r.votes.harmless} sain</div>
+        <div class="stat-row">
+          <div class="stat bad"><b>${r.stats.malicious}</b><span>malveillant</span></div><div class="stat warn"><b>${r.stats.suspicious}</b><span>suspect</span></div>
+          <div class="stat ok"><b>${r.stats.harmless}</b><span>sain</span></div><div class="stat"><b>${r.stats.undetected}</b><span>sans avis</span></div><div class="stat"><b>${r.stats.timeout}</b><span>timeout</span></div>
+        </div>
         <div class="actions">
           <a class="btn small" href="${esc(r.permalink)}" target="_blank" rel="noopener">Voir sur VirusTotal</a>
           <button class="btn small" id="copy-json" type="button">Copier le JSON</button>
@@ -138,26 +142,24 @@
     renderEngines();
   }
 
-  const kv = (rows) => `<dl class="kv">${rows.filter(([, v]) => v != null && v !== '' && !(Array.isArray(v) && !v.length)).map(([k, v, mono]) => `<dt>${esc(k)}</dt><dd class="${mono ? 'mono' : ''}">${Array.isArray(v) ? v.map(esc).join('<br>') : esc(v)}</dd>`).join('')}</dl>`;
+  const link = (u) => `<a class="trunc mono" href="${esc(u)}" title="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u)}</a>`;
+  const kv = (rows) => `<dl class="kv">${rows.filter(([, v]) => v != null && v !== '' && !(Array.isArray(v) && !v.length)).map(([k, v, mode]) => `<dt>${esc(k)}</dt><dd class="${mode === 1 ? 'mono' : ''}">${mode === 'url' ? link(v) : Array.isArray(v) ? v.map(esc).join('<br>') : esc(v)}</dd>`).join('')}</dl>`;
   const card = (title, body) => body ? `<section class="card panel"><h3>${esc(title)}</h3>${body}</section>` : '';
   const chips = (list, cls = '') => list && list.length ? `<div class="chips">${list.map((c) => `<span class="chip ${cls}">${esc(c)}</span>`).join('')}</div>` : '';
 
   function renderDetails(r) {
-    const m = r.meta, s = r.stats;
-    const statsCard = card('Répartition', `<div class="stat-row">
-      <div class="stat bad"><b>${s.malicious}</b><span>malveillant</span></div><div class="stat warn"><b>${s.suspicious}</b><span>suspect</span></div>
-      <div class="stat ok"><b>${s.harmless}</b><span>sain</span></div><div class="stat"><b>${s.undetected}</b><span>sans avis</span></div><div class="stat"><b>${s.timeout}</b><span>timeout</span></div></div>`);
+    const m = r.meta;
     const cats = Object.entries(r.categories || {});
     const catCard = cats.length ? card('Catégories', kv(cats)) : '';
-    let cards = [statsCard];
+    let cards = [];
     if (r.type === 'file') {
       cards.push(card('Fichier', kv([['Noms vus', m.names], ['Taille', size(m.size)], ['Type', m.type], ['Magic', m.magic], ['Signé par', m.signed_by], ['Première vue', when(m.first_seen)], ['Dernière vue', when(m.last_seen)], ['Soumissions', m.times_submitted]])));
       cards.push(card('Empreintes', kv([['SHA-256', m.sha256, 1], ['SHA-1', m.sha1, 1], ['MD5', m.md5, 1]])));
       if (m.threat_label || m.threat_categories.length || m.threat_names.length) cards.push(card('Menace', `${m.threat_label ? `<div class="q mono">${esc(m.threat_label)}</div>` : ''}${chips(m.threat_categories, 'hot')}${chips(m.threat_names, 'warn')}${chips(m.type_tags, 'teal')}`));
     } else if (r.type === 'url') {
-      cards.push(card('Page', kv([['Titre', m.title], ['URL finale', m.final_url, 1], ['Code HTTP', m.http_code], ['Type', m.content_type], ['Taille', size(m.content_length)], ['Première vue', when(m.first_seen)], ['Dernière vue', when(m.last_seen)], ['Soumissions', m.times_submitted]])));
+      cards.push(card('Page', kv([['Titre', m.title], ['URL finale', m.final_url !== r.query ? m.final_url : null, 'url'], ['Code HTTP', m.http_code], ['Type', m.content_type], ['Taille', size(m.content_length)], ['Première vue', when(m.first_seen)], ['Dernière vue', when(m.last_seen)], ['Soumissions', m.times_submitted]])));
       if (m.threat_names.length) cards.push(card('Menaces nommées', chips(m.threat_names, 'hot')));
-      if (m.redirects.length > 1) cards.push(card('Redirections', `<div class="dns">${m.redirects.map((u, i) => `<div><span>${i + 1}.</span>${esc(u)}</div>`).join('')}</div>`));
+      if (m.redirects.length > 1) cards.push(card('Redirections', `<div class="dns">${m.redirects.map((u, i) => `<div><span>${i + 1}.</span><a href="${esc(u)}" title="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u)}</a></div>`).join('')}</div>`));
       cards.push(catCard);
     } else if (r.type === 'domain') {
       cards.push(card('Domaine', kv([['Registrar', m.registrar], ['Créé le', when(m.created)], ['Mis à jour', when(m.updated)], ['Expire', when(m.expires)], ...Object.entries(m.popularity || {}).map(([k, v]) => [`Rang ${k}`, n(v)])])));

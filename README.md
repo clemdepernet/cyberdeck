@@ -30,7 +30,7 @@ Ou avec le `docker-compose.yml` fourni. L'image est multi-arch (amd64, arm64 : e
 | Variable | Défaut | Rôle |
 | --- | --- | --- |
 | `PUBLIC_URL` | déduit de la requête | URL publique, utilisée dans les liens et QR codes des pastes |
-| `APP_PASSWORD` | vide (ouvert) | Active une authentification basique sur tout le deck (utilisateur `toolbox`, ou `APP_USER`) |
+| `APP_PASSWORD` | vide (ouvert) | Met le deck derrière une page de connexion (identifiant `APP_USER`, `toolbox` par défaut) : cookie de session de 30 jours, `curl -u` accepté pour les scripts. Restent publics : les liens courts `/s/…`, la lecture d'un paste (`/p/CODE`, page et API en lecture) et `/health` ; créer un paste ou un lien demande d'être connecté |
 | `PUID` / `PGID` | 1000 | Propriétaire de `/data` |
 | `TZ` | UTC | Fuseau horaire des logs |
 | `MAX_LINKS` | 10 | Nombre maximal de liens courts |
@@ -39,15 +39,15 @@ Ou avec le `docker-compose.yml` fourni. L'image est multi-arch (amd64, arm64 : e
 
 `/data` contient un sous-dossier par outil (`whiteboard/`, `pivot/`, `paste/`…). Rien d'autre à sauvegarder.
 
-Le deck est pensé pour être exposé derrière un reverse proxy ou un tunnel Cloudflare. Sans `APP_PASSWORD`, tout le monde peut créer des pastes : le service Go limite le débit par IP (création et lecture) et les codes sont tirés dans un alphabet de 31 caractères sur 5 positions.
+Le deck est pensé pour être exposé derrière un reverse proxy ou un tunnel Cloudflare. La connexion est gérée par `gate/` (Go, `auth_request` nginx) et ses règles de chemins publics sont testées dans `gate/main_test.go`. Sans `APP_PASSWORD`, tout le monde peut créer des pastes : le service Go limite le débit par IP (création et lecture) et les codes sont tirés dans un alphabet de 31 caractères sur 5 positions.
 
 ## Raccourcis
 
 - `Alt+1` … `Alt+9` : changer d'outil, `Alt+0` : replier le bandeau.
 - `Ctrl+S` dans le whiteboard : enregistrer maintenant (sinon autosave 1,5 s après le dernier trait).
 - Dans Pivot : `Ctrl+I` ouvre l'import de scan, `Ctrl+Z` / `Ctrl+Y` annule et refait, `Ctrl+D` duplique, `Suppr` efface, `Maj` + glisser sélectionne une zone. « Éclater les ports » crée un nœud Service par port ouvert d'un hôte.
-- `https://…/s/raccourci` : lien court, accessible sans mot de passe même si `APP_PASSWORD` est défini.
-- `https://…/p/CODE` : ouvre un paste. Avec `curl`, `wget` ou `Accept: text/plain`, renvoie le texte brut.
+- `https://…/s/raccourci` : lien court, accessible sans connexion même si `APP_PASSWORD` est défini.
+- `https://…/p/CODE` : ouvre un paste en lecture, sans connexion. Avec `curl`, `wget` ou `Accept: text/plain`, renvoie le texte brut.
 - Coller une image (`Ctrl+V`) dans Alpha suffit, pas besoin de fichier.
 - Le convertisseur limite les envois à 512 Mo, garde le fichier 30 minutes et lance deux conversions en parallèle au maximum. Les conversions refusées (PDF → MP3) répondent 422 proprement.
 - CyberChef garde ses options (thème sombre, favoris) dans le navigateur, via son menu Options.

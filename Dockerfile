@@ -25,6 +25,13 @@ RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund || npm inst
 COPY tools/pivot/app/ ./
 RUN npm test && npm run build && ls dist
 
+# ───────────────────────── gate: Go, login page + auth_request backend ─────────────────────────
+FROM golang:1.23-bookworm AS gate-build
+WORKDIR /build
+COPY gate/ ./
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    go vet ./... && go test ./... && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o gate .
+
 # ───────────────────────── paste: Go, static binary ─────────────────────────
 FROM golang:1.23-bookworm AS paste-build
 WORKDIR /build
@@ -64,7 +71,7 @@ RUN set -eux; \
 # ───────────────────────── runtime ─────────────────────────
 FROM node:22-bookworm-slim AS runtime
 ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    DATA_DIR=/data PUID=1000 PGID=1000 PUBLIC_URL="" MAX_LINKS=10 HIBP_API_KEY="" VT_API_KEY=""
+    DATA_DIR=/data PUID=1000 PGID=1000 PUBLIC_URL="" MAX_LINKS=10 HIBP_API_KEY="" VT_API_KEY="" APP_USER=toolbox APP_PASSWORD=""
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends nginx supervisor python3 python3-venv openssl ca-certificates curl \
@@ -92,6 +99,7 @@ RUN python3 -m venv /opt/verdict && /opt/verdict/bin/pip install -r /app/tools/v
 # whole tree (static tools need nothing else)
 COPY shell/ /app/shell/
 COPY tools/ /app/tools/
+COPY --from=gate-build /build/gate /app/gate/gate
 COPY scripts/ /app/scripts/
 COPY supervisord.conf /etc/supervisor/supervisord.conf
 COPY entrypoint.sh /app/entrypoint.sh
@@ -110,7 +118,7 @@ RUN set -eux; \
     cp /app/shell/nginx.conf /etc/nginx/nginx.conf; \
     : > /etc/nginx/auth.conf; \
     python3 /app/scripts/build-manifest.py; \
-    chmod +x /app/entrypoint.sh /app/tools/paste/paste /app/tools/convert/convert /app/tools/convert/smoke.sh /app/tools/links/links; \
+    chmod +x /app/entrypoint.sh /app/gate/gate /app/tools/paste/paste /app/tools/convert/convert /app/tools/convert/smoke.sh /app/tools/links/links; \
     nginx -t
 
 # ───────────────────────── test: run the Python + Node suites inside the real image ─────────────────────────
