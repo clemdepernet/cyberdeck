@@ -78,12 +78,12 @@ RUN set -eux; \
 # ───────────────────────── runtime ─────────────────────────
 FROM node:22-bookworm-slim AS runtime
 ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    DATA_DIR=/data PUID=1000 PGID=1000 PUBLIC_URL="" MAX_LINKS=10 HIBP_API_KEY="" VT_API_KEY="" APP_USER=toolbox APP_PASSWORD="" APP_USERS=""
+    DATA_DIR=/data PUID=1000 PGID=1000 PUBLIC_URL="" MAX_LINKS=10 HIBP_API_KEY="" VT_API_KEY="" SIGHTENGINE_USER="" SIGHTENGINE_SECRET="" APP_USER=toolbox APP_PASSWORD="" APP_USERS=""
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends nginx supervisor python3 python3-venv openssl ca-certificates curl \
       libreoffice-writer libreoffice-calc libreoffice-impress libreoffice-draw \
-      imagemagick img2pdf poppler-utils pandoc ffmpeg file \
+      imagemagick img2pdf poppler-utils pandoc ffmpeg file libimage-exiftool-perl libglib2.0-0 \
       fonts-liberation fonts-dejavu-core fonts-crosextra-carlito fonts-crosextra-caladea fonts-noto-core; \
     rm -rf /var/lib/apt/lists/* /etc/nginx/sites-enabled /etc/nginx/sites-available /var/www/html; \
     userdel -r node 2>/dev/null || true; \
@@ -102,6 +102,11 @@ RUN python3 -m venv /opt/leaks && /opt/leaks/bin/pip install -r /app/tools/leaks
 # verdict: Python venv (FastAPI + httpx + multipart uploads)
 COPY tools/verdict/requirements.txt /app/tools/verdict/requirements.txt
 RUN python3 -m venv /opt/verdict && /opt/verdict/bin/pip install -r /app/tools/verdict/requirements.txt
+
+# mirage: Python venv (FastAPI + Pillow + OpenCV + c2pa); invisible-watermark without its torch dependency
+COPY tools/mirage/requirements.txt /app/tools/mirage/requirements.txt
+RUN python3 -m venv /opt/mirage && /opt/mirage/bin/pip install -r /app/tools/mirage/requirements.txt \
+ && /opt/mirage/bin/pip install --no-deps invisible-watermark==0.2.0
 
 # whole tree (static tools need nothing else)
 COPY shell/ /app/shell/
@@ -137,6 +142,8 @@ RUN /opt/alpha/bin/pip install pytest httpx \
  && cd /app/tools/leaks && /opt/leaks/bin/python -m pytest -q \
  && /opt/verdict/bin/pip install pytest \
  && cd /app/tools/verdict && /opt/verdict/bin/python -m pytest -q \
+ && /opt/mirage/bin/pip install pytest \
+ && cd /app/tools/mirage && /opt/mirage/bin/python -m pytest -q \
  && cd /app/tools/whiteboard && node --test server.test.mjs \
  && cd /app/tools/pivot && node --test server.test.mjs \
  && su deck -s /bin/bash -c /app/tools/convert/smoke.sh

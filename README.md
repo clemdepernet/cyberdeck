@@ -15,6 +15,7 @@ Une boîte à outils web auto-hébergée pour consultants en cybersécurité : *
 | **Verdict** | Un hash (MD5, SHA-1, SHA-256), une URL, un domaine, une IP ou un fichier déposé (32 Mo max) → le rapport VirusTotal : verdict global, classification de menace, détails (noms, taille, signataire, whois, DNS, redirections…), tableau moteur par moteur filtrable ; soumission d'URL ou de fichier inconnus avec suivi de l'analyse | Python · FastAPI · httpx · VirusTotal v3 |
 | **Relay** | Dix liens courts maximum sur ton domaine (`/s/mon-raccourci`), compteur de clics, QR, raccourci personnalisable | Go |
 | **Beacon** | Un annuaire de sites utiles rangés par famille (DevOps, cybersécurité, news, cracking, forensic, OSINT… et n'importe quelle autre) : une carte par site avec nom, description et favicon ; ajout par URL avec lecture automatique du titre et de la description, ajout en vrac (`url | nom | description | famille`), glisser-déposer d'un lien, filtre, renommage de famille, export JSON | Go |
+| **Mirage** | Une image ou une vidéo est-elle sortie d'une IA ? Preuves d'abord : Content Credentials (C2PA) signés, marqueur IPTC « trainedAlgorithmicMedia », métadonnées laissées par Stable Diffusion (AUTOMATIC1111, ComfyUI, NovelAI), Midjourney, Firefly, DALL·E et consorts, filigrane invisible de Stable Diffusion ; puis indices : empreinte caméra, dimensions typiques, et un score statistique optionnel (Sightengine). Vidéos analysées via leurs métadonnées et trois images extraites ; dépôt de fichier ou URL ; rien n'est conservé | Python · FastAPI · ExifTool · c2pa · OpenCV · ffmpeg |
 | **Alpha** | Rendre le noir, le blanc ou une couleur transparent (avec tolérance et bords adoucis), canal alpha, canaux RVB, 32 bit-planes, pixels cachés sous la transparence, extraction LSB | Python · FastAPI · Pillow · NumPy |
 | **JSON** | Validation avec position d'erreur, indentation, compactage, tri des clés, réparation de JSON approximatif, arbre repliable, recherche par chemin | JavaScript vanilla, 100 % navigateur |
 
@@ -38,6 +39,7 @@ Ou avec le `docker-compose.yml` fourni. L'image est multi-arch (amd64, arm64 : e
 | `MAX_LINKS` | 10 | Nombre maximal de liens courts dans Relay |
 | `HIBP_API_KEY` | vide | Clé [Have I Been Pwned](https://haveibeenpwned.com/API/Key) : sans elle, la recherche par e-mail de Leaks est désactivée, le reste fonctionne |
 | `VT_API_KEY` | vide | Clé [VirusTotal](https://www.virustotal.com/gui/my-apikey) (gratuite : 4 requêtes/min, 500/jour) : sans elle, Verdict est désactivé |
+| `SIGHTENGINE_USER` / `SIGHTENGINE_SECRET` | vide | Identifiants [Sightengine](https://sightengine.com) (offre gratuite) : ajoutent un score statistique d'IA dans Mirage ; sans eux, Mirage ne rend que les preuves locales |
 
 `/data` contient un sous-dossier par outil (`whiteboard/`, `pivot/`, `paste/`…). Rien d'autre à sauvegarder.
 
@@ -87,7 +89,7 @@ docker build --target test .        # tests Go, Python et Node dans l'image rée
 docker compose up --build           # le deck sur http://localhost:7850
 ```
 
-Tests unitaires par outil : `tools/paste`, `tools/links`, `tools/bookmarks` et `gate` (`go test`), `tools/alpha` (`pytest`), `tools/whiteboard` (`node --test server.test.mjs`), `tools/pivot` (`node --test server.test.mjs` et `npm test` dans `app/` pour les parseurs de scans), `tools/verdict` (`pytest`).
+Tests unitaires par outil : `tools/paste`, `tools/links`, `tools/bookmarks` et `gate` (`go test`), `tools/alpha` (`pytest`), `tools/whiteboard` (`node --test server.test.mjs`), `tools/pivot` (`node --test server.test.mjs` et `npm test` dans `app/` pour les parseurs de scans), `tools/verdict` et `tools/mirage` (`pytest`).
 
 ## Licence
 

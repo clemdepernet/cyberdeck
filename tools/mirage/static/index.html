@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mirage · Cyberdeck</title>
+  <link rel="stylesheet" href="/theme.css">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="tool-page">
+  <header class="tool-head">
+    <div>
+      <h1>Mirage</h1>
+      <p>Une image ou une vidéo : est-elle sortie d'une IA ? Mirage cherche d'abord des preuves (Content Credentials signés, marqueurs IPTC, traces laissées par Stable Diffusion, ComfyUI, Midjourney, filigrane invisible), puis des indices. Rien n'est conservé.</p>
+    </div>
+  </header>
+
+  <div class="tool-body wrap">
+    <section class="panel block">
+      <div class="drop" id="drop">
+        <div class="drop-main">
+          <strong>Dépose une image ou une vidéo ici</strong>
+          <span class="muted">jpg, png, webp, heic, avif, gif · mp4, mov, webm, mkv · 60 Mo par image, 300 Mo par vidéo · <kbd>Ctrl+V</kbd> pour coller une image</span>
+        </div>
+        <button class="btn primary" type="button" id="pick">Choisir un fichier</button>
+        <input type="file" id="file" accept="image/*,video/*,.heic,.avif,.mkv" hidden>
+      </div>
+      <form class="row" id="url-form">
+        <input type="text" id="url" class="mono" placeholder="…ou l'URL d'une image ou d'une vidéo" autocomplete="off" spellcheck="false">
+        <button class="btn" type="submit" id="url-btn">Analyser l'URL</button>
+      </form>
+      <p class="dim" id="key-note"></p>
+    </section>
+
+    <p class="status" id="status" aria-live="polite"></p>
+
+    <div id="report" hidden>
+      <section class="verdict panel" id="verdict"></section>
+      <section class="panel block">
+        <h2>Ce qui a été trouvé</h2>
+        <ol class="signals" id="signals"></ol>
+      </section>
+      <section class="grid" id="details"></section>
+      <details class="panel raw">
+        <summary>Toutes les métadonnées (ExifTool)</summary>
+        <pre class="mono" id="raw"></pre>
+      </details>
+    </div>
+  </div>
+</div>
+<script src="/deck.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
